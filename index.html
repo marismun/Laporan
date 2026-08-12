@@ -1211,7 +1211,61 @@ function generateWordDoc(resizedImages){
     [id*="narrative"] {
         text-align: justify !important;
     }
+    img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+    }
+    img[src*="error"],
+    img[src=""],
+    img:not([src]) {
+        display: none;
+    }
+    img::after {
+        content: "⚠️ Gambar tidak dapat ditampilkan";
+        display: block;
+        padding: 20px;
+        background: #f8f9fa;
+        color: #dc3545;
+        text-align: center;
+        border: 2px dashed #dc3545;
+        border-radius: 4px;
+        font-size: 11pt;
+    }
 
+    /* Style untuk placeholder upload error */
+    .upload-error {
+        padding: 12px 16px;
+        margin: 10px 0;
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        border-radius: 4px;
+        font-size: 11pt;
+    }
+
+    .upload-error strong {
+        font-weight: bold;
+    }
+
+    /* Style untuk loading state */
+    .loading {
+        opacity: 0.6;
+        pointer-events: none;
+        position: relative;
+    }
+
+    .loading::after {
+        content: "⏳ Memuat...";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255,255,255,0.9);
+        padding: 10px 20px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
     .narrative-table td,
     .narrative-table th {
         text-align: justify !important;
@@ -1311,6 +1365,36 @@ function generateWordDoc(resizedImages){
         font-weight: bold;
         text-decoration: underline;
     }
+    /* ===== STATUS UPLOAD ===== */
+    .upload-status {
+        padding: 10px 14px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-size: 11pt;
+        display: none;
+    }
+
+    .upload-status.show {
+        display: block;
+    }
+
+    .upload-status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .upload-status.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .upload-status.loading {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
 
 </style>
 </head>
@@ -1330,6 +1414,127 @@ ${htmlContent}
     
     $("status").innerHTML = '<div class="status" style="background:#d4edda; border-color:#28a745;">✅ File Word berhasil didownload!</div>';
 }
+
+// ===== HANDLING UPLOAD ERROR =====
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Tangani semua gambar yang gagal dimuat
+    document.querySelectorAll('img').forEach(img => {
+        img.addEventListener('error', function() {
+            // Sembunyikan gambar yang gagal
+            this.style.display = 'none';
+            
+            // Tampilkan pesan error
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'upload-error';
+            errorMsg.innerHTML = `<strong>⚠️ Gagal memuat gambar:</strong> ${this.alt || 'Gambar tidak tersedia'}`;
+            this.parentNode.insertBefore(errorMsg, this);
+        });
+    });
+
+    // Tangani error pada fetch/API calls
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+        return originalFetch.apply(this, args)
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        console.warn('⚠️ Sesi login telah berakhir. Silakan login ulang.');
+                        // Redirect ke halaman login jika perlu
+                        // window.location.href = '/admin/login';
+                    } else if (response.status === 404) {
+                        console.warn('⚠️ Data tidak ditemukan (404).');
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response;
+            })
+            .catch(error => {
+                console.error('❌ Fetch error:', error.message);
+                // Tampilkan notifikasi ke user
+                showNotification('Terjadi kesalahan koneksi. Silakan coba lagi.', 'error');
+                throw error;
+            });
+    };
+});
+
+// ===== FUNGSI NOTIFIKASI =====
+function showNotification(message, type = 'info') {
+    const colors = {
+        info: '#d1ecf1',
+        success: '#d4edda',
+        error: '#f8d7da',
+        warning: '#fff3cd'
+    };
+    const textColors = {
+        info: '#0c5460',
+        success: '#155724',
+        error: '#721c24',
+        warning: '#856404'
+    };
+    
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${colors[type] || colors.info};
+        color: ${textColors[type] || textColors.info};
+        border: 1px solid ${colors[type] || colors.info};
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        max-width: 400px;
+        font-size: 11pt;
+        animation: slideInRight 0.3s ease;
+        font-family: 'Times New Roman', serif;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Hapus setelah 5 detik
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => notification.remove(), 500);
+    }, 5000);
+}
+
+// ===== ANIMASI NOTIFIKASI =====
+const styleAnim = document.createElement('style');
+styleAnim.textContent = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(styleAnim);
+
+// ===== FALLBACK UNTUK GAMBAR CLOUDINARY =====
+function getCloudinaryImage(url, fallbackUrl = '') {
+    if (!url) return fallbackUrl;
+    
+    // Cek apakah URL dari Cloudinary
+    if (url.includes('cloudinary.com')) {
+        // Tambahkan parameter untuk optimasi dan fallback
+        const separator = url.includes('?') ? '&' : '?';
+        return url + separator + 'f_auto,q_auto';
+    }
+    
+    return url;
+}
+
+// Gunakan fungsi ini saat menampilkan gambar
+// Contoh:
+// <img src="${getCloudinaryImage(imageUrl, '/images/default.jpg')}" alt="...">
 
 // ===== SAVE & LOAD (INTERNAL BROWSER) =====
 function save(){
