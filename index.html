@@ -281,7 +281,7 @@ const esc=x=>String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&
 const dates=(a,b)=>{let r=[];if(!a||!b)return r;let d=new Date(a+"T00:00:00"),e=new Date(b+"T00:00:00");while(d<=e){r.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1)}return r};
 
 // ===== KONFIGURASI CLOUDINARY =====
-const CLOUDINARY_CLOUD_NAME = "masukkan_cloud_name_anda_disini"; // GANTI INI
+const CLOUDINARY_CLOUD_NAME = "uxr4cmqd"; // GANTI INI
 const CLOUDINARY_UPLOAD_PRESET = "Laporan"; // Sesuai preset Anda
 
 // ===== FUNGSI UPLOAD KE CLOUDINARY =====
@@ -1204,6 +1204,26 @@ function generateWordDoc(resizedImages){
 <![endif]-->
 <style>
     /* ===== PAGE SETUP A4 DENGAN MARGIN 2cm ===== */
+
+    .narrative-table,
+    .narrative-table *,
+    [class*="narrative"],
+    [id*="narrative"] {
+        text-align: justify !important;
+    }
+
+    .narrative-table td,
+    .narrative-table th {
+        text-align: justify !important;
+        vertical-align: top;
+    }
+
+    .narrative-table p,
+    [id*="narrative"] p,
+    [class*="narrative"] p {
+        text-align: justify !important;
+        margin-bottom: 6px;
+    }
     @page {
         size: 21cm 29.7cm;
         margin-top: 2cm;
