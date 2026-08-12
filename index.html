@@ -136,7 +136,7 @@ const esc=x=>String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&
 const dates=(a,b)=>{let r=[];if(!a||!b)return r;let d=new Date(a+"T00:00:00"),e=new Date(b+"T00:00:00");while(d<=e){r.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1)}return r};
 
 // ===== KONFIGURASI CLOUDINARY =====
-const CLOUDINARY_CLOUD_NAME = "masukkan_cloud_name_anda_disini"; // GANTI INI
+const CLOUDINARY_CLOUD_NAME = "uxr4cmqd"; // GANTI INI
 const CLOUDINARY_UPLOAD_PRESET = "Laporan"; // Sesuai preset Anda
 
 // ===== FUNGSI UPLOAD KE CLOUDINARY =====
@@ -1126,7 +1126,7 @@ function importExcel(event){
     reader.onload = function(e){
         try{
             let content = e.target.result;
-            let lines = content.split('\n').filter(line => line.trim() !== '');
+            let lines = content.split('\n').map(line => line.replace(/\r$/, '')).filter(line => line.trim() !== '');
             if(lines.length < 2){alert('File kosong atau tidak valid.');return;}
             
             let section = '';
@@ -1188,14 +1188,26 @@ function importExcel(event){
                     }
                 }
                 else if(section === 'dokumentasi'){
-                    let parts = line.split(',').map(c => c.trim());
-                    if(parts.length >= 3 && parts[0] && !parts[0].includes('Kampung')){
-                        let kampung = parts[0];
-                        let src = parts[1] || '';
-                        let caption = parts[2] || '';
-                        if(src.startsWith('"') && src.endsWith('"')) src = src.slice(1,-1);
-                        if(!photoData[kampung]) photoData[kampung] = [];
-                        photoData[kampung].push({src:src, caption:caption});
+                    // BAGIAN YANG DIPERBAIKI
+                    let firstComma = line.indexOf(','); 
+                    if(firstComma > 0){
+                        let kampung = line.substring(0, firstComma).trim();
+                        let rest = line.substring(firstComma + 1).trim();
+                        
+                        let src = rest.replace(/^"|"$/g, '');
+                        let caption = '';
+                        
+                        let lastComma = src.lastIndexOf(',');
+                        if(lastComma > 0 && src.includes('",')){
+                            let splitIdx = src.lastIndexOf('",');
+                            caption = src.substring(splitIdx + 2).trim();
+                            src = src.substring(0, splitIdx);
+                        }
+
+                        if(src && src.startsWith('http')){
+                            if(!photoData[kampung]) photoData[kampung] = [];
+                            photoData[kampung].push({src: src, caption: caption || ''});
+                        }
                     }
                 }
                 else if(section === 'backup'){
