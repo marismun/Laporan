@@ -18,7 +18,7 @@
     --shadow-main: 0 4px 20px rgba(0,0,0,0.04);
     --radius-md: 12px;
     --radius-sm: 8px;
-    --toolbar-height: 70px;
+    --toolbar-height: 60px;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -27,10 +27,10 @@ body{
     font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
     color:var(--text-dark);
     padding-bottom:40px;
-    padding-top:calc(var(--toolbar-height) + 30px); /* Ruang untuk sticky toolbar */
+    padding-top:calc(var(--toolbar-height) + 20px);
 }
 
-/* ===== STICKY TOOLBAR GLOBAL ===== */
+/* ===== STICKY TOOLBAR RESPONSIF ===== */
 .global-toolbar {
     position: fixed;
     top: 0;
@@ -38,35 +38,47 @@ body{
     right: 0;
     z-index: 9999;
     background: #ffffff;
-    padding: 12px 24px;
+    padding: 8px 12px;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    gap: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     border-bottom: 2px solid var(--primary-navy);
     min-height: var(--toolbar-height);
+    font-size: 13px;
 }
-.toolbar-left, .toolbar-right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.toolbar-left, .toolbar-right {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+.toolbar-left span {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary-navy);
+    margin-right: 8px;
+}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px}
 
-.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
-
-/* BUTTONS */
+/* ===== BUTTONS RESPONSIF ===== */
 .btn{
-    padding:10px 20px;
+    padding:6px 12px;
     border:none;
     border-radius:var(--radius-sm);
     font-weight:600;
-    font-size:14px;
+    font-size:12px;
     cursor:pointer;
     transition:all 0.2s ease;
     display:inline-flex;
     align-items:center;
-    gap:8px;
+    gap:4px;
     background:#f1f2f6;
     color:var(--text-dark);
-    text-decoration:none
+    text-decoration:none;
+    white-space:nowrap;
 }
 .btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08)}
 .btn:active{transform:translateY(0)}
@@ -76,107 +88,123 @@ body{
 .btn-danger{background:var(--accent-red);color:white}.btn-danger:hover{background:#a93226}
 .btn-outline{background:transparent;border:1px solid var(--primary-navy);color:var(--primary-navy)}.btn-outline:hover{background:var(--primary-light)}
 
-/* SECTIONS CARDS */
+/* ===== SECTIONS CARDS RESPONSIF ===== */
 .section-card{
     background:var(--bg-card);
     border-radius:var(--radius-md);
     box-shadow:var(--shadow-main);
-    padding:24px 28px;
+    padding:20px 18px;
     border:1px solid #edf2f7;
-    margin-bottom:25px
+    margin-bottom:20px;
 }
 .section-title{
-    font-size:18px;
+    font-size:17px;
     font-weight:700;
     color:var(--primary-navy);
-    margin-bottom:18px;
+    margin-bottom:16px;
     display:flex;
     align-items:center;
-    gap:10px
+    gap:8px;
 }
 .section-title::after{
     content:'';
     flex:1;
     height:2px;
     background:#e2e8f0;
-    margin-left:10px
+    margin-left:10px;
 }
-/* INPUTS */
-.form-group{margin-bottom:16px}
-label{display:block;font-weight:600;font-size:13px;color:var(--text-gray);margin-bottom:5px}
+/* ===== INPUT RESPONSIF ===== */
+.form-group{margin-bottom:14px}
+label{display:block;font-weight:600;font-size:13px;color:var(--text-gray);margin-bottom:4px}
 input,select,textarea{
-    width:100%;padding:10px 12px;
+    width:100%;padding:8px 10px;
     border:1px solid #d1d5db;border-radius:var(--radius-sm);
-    font-size:14px;font-family:inherit;
-    transition:border-color 0.2s;background:#fff
+    font-size:13px;font-family:inherit;
+    transition:border-color 0.2s;background:#fff;
 }
 input:focus,select:focus,textarea:focus{
     outline:none;border-color:var(--primary-navy);
-    box-shadow:0 0 0 3px rgba(12,59,99,0.1)
+    box-shadow:0 0 0 3px rgba(12,59,99,0.1);
 }
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.cols-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
-/* CARDS INNER */
-.card{border:1px solid #e2e8f0;background:#fafbfc;padding:16px;margin:12px 0;border-radius:var(--radius-sm);transition:0.2s}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.cols-5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+/* ===== CARDS INNER ===== */
+.card{border:1px solid #e2e8f0;background:#fafbfc;padding:14px;margin:10px 0;border-radius:var(--radius-sm);transition:0.2s;}
 .card:hover{border-color:var(--primary-navy)}
-.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
-.head b{font-size:15px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;}
+.head b{font-size:14px;}
 .pill{
-    padding:8px 16px;border:1px solid #d1d5db;background:#f1f2f6;
-    border-radius:30px;cursor:pointer;font-weight:500;font-size:13px;transition:0.2s
+    padding:6px 14px;border:1px solid #d1d5db;background:#f1f2f6;
+    border-radius:30px;cursor:pointer;font-weight:500;font-size:12px;transition:0.2s;
 }
 .pill:hover{background:#e5e7eb}.pill.active{background:var(--primary-navy);color:#fff;border-color:var(--primary-navy)}
-.day{border:1px solid #e2e8f0;border-radius:var(--radius-sm);margin:16px 0;overflow:hidden}
-.day h4{background:#f8fafc;padding:12px 16px;border-bottom:1px solid #e2e8f0;margin:0;font-size:15px}
-.daybody{padding:16px}
-.sls{background:#fff;border:1px solid #edf2f7;padding:12px;border-radius:var(--radius-sm);margin:8px 0}
-.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:8px 0}
-.metrics label{font-size:11px;color:var(--text-gray)}
+.day{border:1px solid #e2e8f0;border-radius:var(--radius-sm);margin:14px 0;overflow:hidden;}
+.day h4{background:#f8fafc;padding:10px 14px;border-bottom:1px solid #e2e8f0;margin:0;font-size:14px;}
+.daybody{padding:14px;}
+.sls{background:#fff;border:1px solid #edf2f7;padding:10px;border-radius:var(--radius-sm);margin:6px 0;}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:6px 0;}
+.metrics label{font-size:11px;color:var(--text-gray);}
 .status{
-    padding:12px 16px;border-radius:var(--radius-sm);
-    background:#f1f2f6;border-left:4px solid #777;margin:12px 0;font-size:14px
+    padding:10px 14px;border-radius:var(--radius-sm);
+    background:#f1f2f6;border-left:4px solid #777;margin:10px 0;font-size:13px;
 }
 .err{background:#fee;border-color:var(--accent-red)}
-.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
 .photo-item{
-    border:1px solid #e2e8f0;padding:14px;border-radius:var(--radius-sm);
-    background:#fff;transition:0.2s
+    border:1px solid #e2e8f0;padding:12px;border-radius:var(--radius-sm);
+    background:#fff;transition:0.2s;
 }
 .photo-item:hover{box-shadow:var(--shadow-main)}
 .photo-item .preview-img{
-    width:100%;height:160px;object-fit:contain;background:#f8fafc;
-    border:1px solid #edf2f7;border-radius:var(--radius-sm);margin-bottom:10px
+    width:100%;height:140px;object-fit:contain;background:#f8fafc;
+    border:1px solid #edf2f7;border-radius:var(--radius-sm);margin-bottom:8px;
 }
+/* ===== PREVIEW RESPONSIF ===== */
 .preview{
-    border:1px solid #d1d5db;padding:30px;font:12pt/1.6 "Times New Roman",serif;
-    background:#fff;border-radius:var(--radius-md);margin-top:20px;display:none
+    border:1px solid #d1d5db;padding:20px 16px;
+    font:11pt/1.6 "Times New Roman",serif;
+    background:#fff;border-radius:var(--radius-md);margin-top:20px;display:none;
+    word-wrap:break-word;overflow-x:auto;max-width:100%;
 }
 .preview.visible{display:block}
 .preview p{text-align:justify}
+.preview img{max-width:100%!important;height:auto!important;}
 .hidden{display:none!important}
-footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:13px;border-top:1px solid #e2e8f0;padding-top:20px}
+footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:12px;border-top:1px solid #e2e8f0;padding-top:16px;}
+
+/* ===== RESPONSIVE HP ===== */
 @media(max-width:768px){
-    .grid-2,.cols-5{grid-template-columns:1fr}
-    .global-toolbar{flex-direction:column;align-items:stretch;padding:10px 15px;min-height:auto}
-    body{padding-top:160px}
-    .toolbar-left,.toolbar-right{justify-content:center}
+    :root{--toolbar-height: 80px;}
+    body{padding-top:calc(var(--toolbar-height) + 10px);}
+    .global-toolbar{padding:6px 10px;font-size:11px;justify-content:center;}
+    .btn{font-size:10px;padding:4px 8px;}
+    .grid-2,.cols-5{grid-template-columns:1fr;}
+    .photo-grid{grid-template-columns:repeat(2,1fr);}
+    .section-card{padding:14px;}
+    .preview{font-size:10pt;padding:14px;}
+}
+@media(max-width:480px){
+    .global-toolbar{flex-direction:column;align-items:stretch;gap:4px;}
+    .toolbar-left,.toolbar-right{justify-content:center;flex-wrap:wrap;}
+    .btn{font-size:10px;padding:4px 6px;white-space:normal;}
+    .photo-grid{grid-template-columns:1fr;}
 }
 </style>
 </head>
 <body>
 
-<!-- STICKY TOOLBAR -->
+<!-- STICKY TOOLBAR RESPONSIF -->
 <div class="global-toolbar">
     <div class="toolbar-left">
-        <span style="font-weight:700;color:var(--primary-navy);font-size:16px">📊 BPS Generator</span>
-        <button class="btn btn-success" onclick="exportExcel()">📥 Backup Laporan</button>
-        <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">📤 Restore Laporan</button>
+        <span>📊 BPS</span>
+        <button class="btn btn-success" onclick="exportExcel()">📥 Backup</button>
+        <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">📤 Restore</button>
         <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importExcel(event)">
-        <button class="btn btn-danger" onclick="resetAll()">🗑 Hapus Semua</button>
+        <button class="btn btn-danger" onclick="resetAll()">🗑 Hapus</button>
     </div>
     <div class="toolbar-right">
-        <button class="btn btn-primary" onclick="preview()">👁 Preview Laporan</button>
-        <button class="btn btn-gold" onclick="word()">⬇ Download & Backup Word</button>
+        <button class="btn btn-primary" onclick="preview()">👁 Preview</button>
+        <button class="btn btn-gold" onclick="word()">⬇ Word</button>
     </div>
 </div>
 
@@ -189,7 +217,7 @@ footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:13px;b
                 <div class="form-group">
                     <label>Nama Petugas</label>
                     <div id="petugas-container"></div>
-                    <button class="btn" style="margin-top:8px" onclick="addPetugas()">+ Tambah Petugas</button>
+                    <button class="btn" style="margin-top:6px" onclick="addPetugas()">+ Tambah Petugas</button>
                 </div>
                 <div class="form-group">
                     <label>Tujuan</label>
@@ -203,10 +231,10 @@ footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:13px;b
             <div>
                 <div class="form-group">
                     <label>Rentang Tanggal Tugas</label>
-                    <div style="display:flex;gap:10px;align-items:center">
-                        <input id="tanggalAwal" type="text" placeholder="dd/mm/yyyy" onchange="validateDateFormat(this)">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <input id="tanggalAwal" type="text" placeholder="dd/mm/yyyy" onchange="validateDateFormat(this)" style="flex:1;min-width:100px;">
                         <span>s.d.</span>
-                        <input id="tanggalAkhir" type="text" placeholder="dd/mm/yyyy" onchange="validateDateFormat(this)">
+                        <input id="tanggalAkhir" type="text" placeholder="dd/mm/yyyy" onchange="validateDateFormat(this)" style="flex:1;min-width:100px;">
                     </div>
                 </div>
                 <div class="form-group">
@@ -231,7 +259,7 @@ footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:13px;b
     </div>
 
     <div style="text-align:center;margin:20px 0">
-        <button class="btn btn-primary" style="padding:14px 40px;font-size:16px;border-radius:30px" onclick="generate()">🚀 Generate Form Progres & Dokumentasi</button>
+        <button class="btn btn-primary" style="padding:14px 30px;font-size:16px;border-radius:30px;width:100%;max-width:300px;" onclick="generate()">🚀 Generate Form</button>
     </div>
     <div id="status"></div>
 
@@ -239,7 +267,7 @@ footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:13px;b
     <div id="progress" class="hidden">
         <div class="section-card">
             <div class="section-title">📈 Progres Harian</div>
-            <div id="nav" class="nav" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px"></div>
+            <div id="nav" class="nav" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
             <div id="content"></div>
         </div>
     </div>
@@ -247,14 +275,14 @@ footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:13px;b
     <!-- SECTION 4: DOKUMENTASI -->
     <div class="section-card">
         <div class="section-title">📸 Dokumentasi Lapangan</div>
-        <div id="docNav" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px"></div>
+        <div id="docNav" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
         <div id="docContent"></div>
     </div>
 
-    <!-- PREVIEW AREA -->
+    <!-- PREVIEW RESPONSIF -->
     <div id="preview" class="preview"></div>
 
-    <footer>© BPS Raja Ampat — Semua data diproses aman di peramban Anda.</footer>
+    <footer>© BPS Raja Ampat — Data diproses aman di peramban Anda.</footer>
 </div>
 
 <script>
@@ -281,8 +309,8 @@ const esc=x=>String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&
 const dates=(a,b)=>{let r=[];if(!a||!b)return r;let d=new Date(a+"T00:00:00"),e=new Date(b+"T00:00:00");while(d<=e){r.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1)}return r};
 
 // ===== KONFIGURASI CLOUDINARY =====
-const CLOUDINARY_CLOUD_NAME = "uxr4cmqd"; // Cloud name Anda
-const CLOUDINARY_UPLOAD_PRESET = "Laporan"; // Sesuai preset Anda
+const CLOUDINARY_CLOUD_NAME = "uxr4cmqd";
+const CLOUDINARY_UPLOAD_PRESET = "Laporan";
 
 // ===== FUNGSI UPLOAD KE CLOUDINARY =====
 function uploadFileToCloudinary(file, isImage, callback) {
@@ -427,7 +455,7 @@ function renderPetugas(){
         <div class="card">
             <div class="head">
                 <b>Petugas ${i+1}</b>
-                <button class="btn btn-danger" style="padding:4px 12px;font-size:12px" onclick="removePetugas(${i})">Hapus</button>
+                <button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="removePetugas(${i})">Hapus</button>
             </div>
             <div>
                 <input type="text" value="${esc(p)}" placeholder="Nama petugas" onchange="updatePetugas(${i}, this.value)">
@@ -473,7 +501,7 @@ function renderKampung() {
         <div class="card">
             <div class="head">
                 <b>Kampung ${i+1}</b>
-                <button class="btn btn-danger" style="padding:4px 12px;font-size:12px" onclick="S.kampung.splice(${i},1);renderKampung();renderWilayah()">Hapus</button>
+                <button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="S.kampung.splice(${i},1);renderKampung();renderWilayah()">Hapus</button>
             </div>
             <div class="cols-5">
                 <div><label>Kampung</label><input value="${esc(x.kampung)}" onchange="S.kampung[${i}].kampung=this.value;renderWilayah()"></div>
@@ -511,7 +539,7 @@ function renderWilayah() {
         let startDisplay = formatDate(x.start);
         let endDisplay = formatDate(x.end);
         
-        html += `<div class="card"><div class="head"><b>Wilayah Tugas ${i+1}</b><button class="btn btn-danger" style="padding:4px 12px;font-size:12px" onclick="S.wilayah.splice(${i},1);renderWilayah()">Hapus</button></div>
+        html += `<div class="card"><div class="head"><b>Wilayah Tugas ${i+1}</b><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="S.wilayah.splice(${i},1);renderWilayah()">Hapus</button></div>
         <div class="cols-5">
             <div><label>Kampung</label><select onchange="S.wilayah[${i}].kampung=this.value">
                 <option value="">Pilih kampung</option>
@@ -605,7 +633,6 @@ function renderProgress(){
     ds.forEach((d,i)=>{
         let last = i === ds.length - 1;
         let isLastKampung = S.v === vs.length - 1;
-        // Hanya tampilkan label "HARI TERAKHIR KAMPUNG" jika memang benar-benar hari terakhir untuk kampung tersebut
         let labelLast = "";
         if (last && !isLastKampung) {
             labelLast = " — HARI TERAKHIR KAMPUNG (SEBELUM PINDAH)";
@@ -1022,8 +1049,9 @@ function generateWordHTML(resizedImages){
         
         docHtml += `<tr>
             <td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;">
-                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">SPJ TRANSPORTASI</p>
-                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">  </p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">DOKUMENTASI PERJALANAN DINAS PELAKSANAAN LAPANGAN</p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">SENSUS EKONOMI 2026</p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">DOKUMENTASI PERAHU</p>
             </td>
         </tr>`;
         
@@ -1093,7 +1121,6 @@ function word(){
     });
     
     if(imagesToResize.length === 0){
-        // Tidak ada gambar, langsung buat word tanpa resize
         generateOfflineWordAndBackup({});
         return;
     }
@@ -1165,7 +1192,6 @@ function generateOfflineWordAndBackup(resizedImages){
     // STEP 2: Upload backup ke Cloudinary
     $("status").innerHTML = '<div class="status">⏳ Mengupload backup Word ke Cloudinary...</div>';
     
-    // Pastikan uploadFileToCloudinary dipanggil dengan blob dan parameter yang benar
     uploadFileToCloudinary(blob, false, function(wordUrl, displayName) {
         if(!S.wordBackupUrl) S.wordBackupUrl = [];
         S.wordBackupUrl.push({
@@ -1203,7 +1229,6 @@ function generateWordDoc(resizedImages){
 </xml>
 <![endif]-->
 <style>
-    /* ===== PAGE SETUP A4 DENGAN MARGIN 2cm ===== */
     @page {
         size: 21cm 29.7cm;
         margin-top: 2cm;
@@ -1216,82 +1241,22 @@ function generateWordDoc(resizedImages){
         mso-page-margin-bottom: 2cm;
         mso-page-margin-left: 2cm;
     }
-    
     body { 
         font-family: "Times New Roman", Times, serif; 
         font-size: 12pt; 
         line-height: 1.5;
         mso-line-height-rule: exactly;
     }
-    
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: "Times New Roman", Times, serif;
-        font-size: 12pt;
-    }
-    
-    td {
-        border: 1px solid #000000;
-        padding: 8px;
-        vertical-align: top;
-    }
-    
-    p { 
-        text-align: justify; 
-        margin: 0 0 6pt 0;
-        mso-para-margin-bottom: 6.0pt;
-    }
-    
-    ul {
-        margin-top: 3pt;
-        margin-bottom: 0pt;
-        padding-left: 20pt;
-    }
-    
-    li {
-        text-align: justify;
-        margin-bottom: 3pt;
-        mso-para-margin-bottom: 3.0pt;
-    }
-    
-    h3 {
-        text-align: center;
-        font-size: 12pt;
-        font-weight: bold;
-        margin-top: 18pt;
-        margin-bottom: 12pt;
-        mso-para-margin-top: 18.0pt;
-        mso-para-margin-bottom: 12.0pt;
-    }
-    
-    img {
-        height: 347pt;
-        width: auto;
-        max-width: 100%;
-        object-fit: contain;
-        border: 1px solid #cccccc;
-        border-radius: 4px;
-        display: block;
-        margin: 0 auto;
-        mso-height-rule: exactly;
-    }
-    
-    .ttd {
-        text-align: center;
-        padding-top: 60px;
-        padding-bottom: 20px;
-    }
-    .ttd p {
-        text-align: center;
-        margin: 0;
-        padding: 0;
-    }
-    .ttd .nama {
-        font-weight: bold;
-        text-decoration: underline;
-    }
-
+    table { width: 100%; border-collapse: collapse; font-family: "Times New Roman", Times, serif; font-size: 12pt; }
+    td { border: 1px solid #000000; padding: 8px; vertical-align: top; }
+    p { text-align: justify; margin: 0 0 6pt 0; mso-para-margin-bottom: 6.0pt; }
+    ul { margin-top: 3pt; margin-bottom: 0pt; padding-left: 20pt; }
+    li { text-align: justify; margin-bottom: 3pt; mso-para-margin-bottom: 3.0pt; }
+    h3 { text-align: center; font-size: 12pt; font-weight: bold; margin-top: 18pt; margin-bottom: 12pt; mso-para-margin-top: 18.0pt; mso-para-margin-bottom: 12.0pt; }
+    img { height: 347pt; width: auto; max-width: 100%; object-fit: contain; border: 1px solid #cccccc; border-radius: 4px; display: block; margin: 0 auto; mso-height-rule: exactly; }
+    .ttd { text-align: center; padding-top: 60px; padding-bottom: 20px; }
+    .ttd p { text-align: center; margin: 0; padding: 0; }
+    .ttd .nama { font-weight: bold; text-decoration: underline; }
 </style>
 </head>
 <body>
