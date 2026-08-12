@@ -176,7 +176,7 @@ footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:13px;b
     </div>
     <div class="toolbar-right">
         <button class="btn btn-primary" onclick="preview()">👁 Preview Laporan</button>
-        <button class="btn btn-gold" onclick="word()">⬇ Download Word</button>
+        <button class="btn btn-gold" onclick="word()">⬇ Download & Backup Word</button>
     </div>
 </div>
 
@@ -281,7 +281,7 @@ const esc=x=>String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&
 const dates=(a,b)=>{let r=[];if(!a||!b)return r;let d=new Date(a+"T00:00:00"),e=new Date(b+"T00:00:00");while(d<=e){r.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1)}return r};
 
 // ===== KONFIGURASI CLOUDINARY =====
-const CLOUDINARY_CLOUD_NAME = "uxr4cmqd"; // GANTI INI
+const CLOUDINARY_CLOUD_NAME = "uxr4cmqd"; // Cloud name Anda
 const CLOUDINARY_UPLOAD_PRESET = "Laporan"; // Sesuai preset Anda
 
 // ===== FUNGSI UPLOAD KE CLOUDINARY =====
@@ -821,28 +821,28 @@ function generateNarrativeTable(){
             let last = di === ds.length - 1;
             let isLastDay = isLastKampung && last;
             
-            out += `<p style="margin-top:12pt;margin-bottom:0pt;"><b>${fmt(d)}</b></p>`;
-            out += `<ul style="margin-top:3pt;margin-bottom:0pt;padding-left:20pt;">`;
+            out += `<p style="margin-top:12pt;margin-bottom:0pt;text-align:justify;"><b>${fmt(d)}</b></p>`;
+            out += `<ul style="margin-top:3pt;margin-bottom:0pt;padding-left:20pt;text-align:justify;">`;
             
             if (vi === 0 && firstDay) {
-                out += `<li>Tim berangkat dari Waisai menuju ${esc(v.name)}, Distrik ${esc(v.distrik)}, menggunakan transportasi perahu motor. Tim tiba di kampung tujuan dan mempersiapkan pelaksanaan pendataan lapangan.</li>`;
+                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim berangkat dari Waisai menuju ${esc(v.name)}, Distrik ${esc(v.distrik)}, menggunakan transportasi perahu motor. Tim tiba di kampung tujuan dan mempersiapkan pelaksanaan pendataan lapangan.</li>`;
                 firstDay = false;
             } 
             else if (firstDay && vi > 0) {
-                out += `<li>Tim melakukan perjalanan dari ${esc(vs[vi-1].name)} menuju ${esc(v.name)}, Distrik ${esc(v.distrik)}. Setelah tiba, tim melakukan koordinasi dengan aparat kampung untuk izin dan persiapan pelaksanaan pendataan.</li>`;
+                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim melakukan perjalanan dari ${esc(vs[vi-1].name)} menuju ${esc(v.name)}, Distrik ${esc(v.distrik)}. Setelah tiba, tim melakukan koordinasi dengan aparat kampung untuk izin dan persiapan pelaksanaan pendataan.</li>`;
                 firstDay = false;
             }
             
             if (di === 0) {
-                out += `<li>Tim menemui Bapak ${esc(namaAparat)} selaku ${esc(jabatanAparat)} ${esc(v.name)}.</li>`;
-                out += `<li>Tim meminta visum Surat Tugas serta menyampaikan maksud dan tujuan pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026 kepada aparat kampung.</li>`;
-                out += `<li>Setelah memperoleh izin, masing-masing petugas menuju wilayah tugas untuk melakukan penelusuran wilayah dan dilanjutkan dengan pendataan door to door.</li>`;
+                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim menemui Bapak ${esc(namaAparat)} selaku ${esc(jabatanAparat)} ${esc(v.name)}.</li>`;
+                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim meminta visum Surat Tugas serta menyampaikan maksud dan tujuan pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026 kepada aparat kampung.</li>`;
+                out += `<li style="text-align:justify;margin-bottom:3pt;">Setelah memperoleh izin, masing-masing petugas menuju wilayah tugas untuk melakukan penelusuran wilayah dan dilanjutkan dengan pendataan door to door.</li>`;
             }
             
             Object.values(S.p[v.name][d].items).forEach(x => {
                 let a = +x.assignment || 0, b = +x.bku || 0, k = +x.keluarga || 0, bl = +x.bangunan || 0, u = +x.usaha || 0;
                 if (!a && !b && !k && !bl && !u && !x.notes) {
-                    out += `<li>PPL ${esc(x.ppl)} melakukan pendataan di SLS ${esc(x.sls)} dan tidak ada data yang berhasil didata pada hari ini.</li>`;
+                    out += `<li style="text-align:justify;margin-bottom:3pt;">PPL ${esc(x.ppl)} melakukan pendataan di SLS ${esc(x.sls)} dan tidak ada data yang berhasil didata pada hari ini.</li>`;
                     return;
                 }
                 let r = [];
@@ -850,20 +850,20 @@ function generateNarrativeTable(){
                 if (k) r.push(`${k} Keluarga`);
                 if (bl) r.push(`${bl} Bangunan Lainnya`);
                 let detail = r.length ? `, dengan rincian ${r.join(", ")}.` : ".";
-                out += `<li>PPL ${esc(x.ppl)} melakukan pendataan di SLS ${esc(x.sls)} dan berhasil mendata serta submit sebanyak <b>${a}</b> assignment${detail} Total usaha yang ditemukan sebanyak <b>${u}</b> usaha.${x.notes ? " " + esc(x.notes) : ""}</li>`;
+                out += `<li style="text-align:justify;margin-bottom:3pt;">PPL ${esc(x.ppl)} melakukan pendataan di SLS ${esc(x.sls)} dan berhasil mendata serta submit sebanyak <b>${a}</b> assignment${detail} Total usaha yang ditemukan sebanyak <b>${u}</b> usaha.${x.notes ? " " + esc(x.notes) : ""}</li>`;
             });
             
             if (isLastDay) {
-                out += `<li>Petugas melakukan pengecekan administrasi dan kelengkapan hasil pendataan sebagai tahap akhir kegiatan lapangan.</li>`;
-                out += `<li>Setelah seluruh hasil pendataan dinyatakan lengkap, tim mempersiapkan keberangkatan kembali menuju Waisai.</li>`;
-                out += `<li>Tim meninggalkan Kampung ${esc(v.name)} dan melakukan perjalanan kembali ke Waisai.</li>`;
+                out += `<li style="text-align:justify;margin-bottom:3pt;">Petugas melakukan pengecekan administrasi dan kelengkapan hasil pendataan sebagai tahap akhir kegiatan lapangan.</li>`;
+                out += `<li style="text-align:justify;margin-bottom:3pt;">Setelah seluruh hasil pendataan dinyatakan lengkap, tim mempersiapkan keberangkatan kembali menuju Waisai.</li>`;
+                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim meninggalkan Kampung ${esc(v.name)} dan melakukan perjalanan kembali ke Waisai.</li>`;
                 
                 let tglAwal = document.getElementById('tanggalAwal').value.trim();
                 let tglAkhir = document.getElementById('tanggalAkhir').value.trim();
                 let tglAwalDisplay = tglAwal || S.tanggalAwal ? formatTanggalRange(S.tanggalAwal, S.tanggalAkhir) : '';
                 let rangeText = tglAwalDisplay || `${fmt(S.tanggalAwal)} sampai ${fmt(S.tanggalAkhir)}`;
                 
-                out += `<li>Dengan keberangkatan tersebut, rangkaian kegiatan pendataan lapangan pada periode ${rangeText} dinyatakan selesai.</li>`;
+                out += `<li style="text-align:justify;margin-bottom:3pt;">Dengan keberangkatan tersebut, rangkaian kegiatan pendataan lapangan pada periode ${rangeText} dinyatakan selesai.</li>`;
             }
             
             out += `</ul>`;
@@ -873,7 +873,7 @@ function generateNarrativeTable(){
     return out;
 }
 
-// ===== PREVIEW & DOWNLOAD WORD (OFFLINE READY) =====
+// ===== PREVIEW & DOWNLOAD WORD (OFFLINE READY + BACKUP) =====
 function generateWordHTML(resizedImages){
     let docHtml = '';
     let vs = group();
@@ -1022,9 +1022,8 @@ function generateWordHTML(resizedImages){
         
         docHtml += `<tr>
             <td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;">
-                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">DOKUMENTASI PERJALANAN DINAS PELAKSANAAN LAPANGAN</p>
-                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">SENSUS EKONOMI 2026</p>
-                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">DOKUMENTASI PERAHU</p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">SPJ TRANSPORTASI</p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">  </p>
             </td>
         </tr>`;
         
@@ -1147,7 +1146,7 @@ function generateOfflineWordAndBackup(resizedImages){
     let htmlContent = generateWordHTML(resizedImages);
     let blob = new Blob(["\ufeff" + htmlContent], {type: "application/msword;charset=utf-8"});
 
-    // Format nama file
+    // Format nama file sesuai keinginan
     let pplNames = [];
     S.wilayah.forEach(w => { if(w.ppl && w.ppl.trim() && !pplNames.includes(w.ppl.trim())) pplNames.push(w.ppl.trim()); });
     let namaPpl = pplNames.length > 0 ? pplNames[0] : "TanpaNama";
@@ -1166,7 +1165,8 @@ function generateOfflineWordAndBackup(resizedImages){
     // STEP 2: Upload backup ke Cloudinary
     $("status").innerHTML = '<div class="status">⏳ Mengupload backup Word ke Cloudinary...</div>';
     
-    uploadFileToCloudinary(blob, false, function(wordUrl) {
+    // Pastikan uploadFileToCloudinary dipanggil dengan blob dan parameter yang benar
+    uploadFileToCloudinary(blob, false, function(wordUrl, displayName) {
         if(!S.wordBackupUrl) S.wordBackupUrl = [];
         S.wordBackupUrl.push({
             file: wordUrl,
@@ -1204,80 +1204,6 @@ function generateWordDoc(resizedImages){
 <![endif]-->
 <style>
     /* ===== PAGE SETUP A4 DENGAN MARGIN 2cm ===== */
-
-    .narrative-table,
-    .narrative-table *,
-    [class*="narrative"],
-    [id*="narrative"] {
-        text-align: justify !important;
-    }
-    img {
-        display: block;
-        max-width: 100%;
-        height: auto;
-    }
-    img[src*="error"],
-    img[src=""],
-    img:not([src]) {
-        display: none;
-    }
-    img::after {
-        content: "⚠️ Gambar tidak dapat ditampilkan";
-        display: block;
-        padding: 20px;
-        background: #f8f9fa;
-        color: #dc3545;
-        text-align: center;
-        border: 2px dashed #dc3545;
-        border-radius: 4px;
-        font-size: 11pt;
-    }
-
-    /* Style untuk placeholder upload error */
-    .upload-error {
-        padding: 12px 16px;
-        margin: 10px 0;
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-        border-radius: 4px;
-        font-size: 11pt;
-    }
-
-    .upload-error strong {
-        font-weight: bold;
-    }
-
-    /* Style untuk loading state */
-    .loading {
-        opacity: 0.6;
-        pointer-events: none;
-        position: relative;
-    }
-
-    .loading::after {
-        content: "⏳ Memuat...";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(255,255,255,0.9);
-        padding: 10px 20px;
-        border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    .narrative-table td,
-    .narrative-table th {
-        text-align: justify !important;
-        vertical-align: top;
-    }
-
-    .narrative-table p,
-    [id*="narrative"] p,
-    [class*="narrative"] p {
-        text-align: justify !important;
-        margin-bottom: 6px;
-    }
     @page {
         size: 21cm 29.7cm;
         margin-top: 2cm;
@@ -1365,36 +1291,6 @@ function generateWordDoc(resizedImages){
         font-weight: bold;
         text-decoration: underline;
     }
-    /* ===== STATUS UPLOAD ===== */
-    .upload-status {
-        padding: 10px 14px;
-        margin: 10px 0;
-        border-radius: 4px;
-        font-size: 11pt;
-        display: none;
-    }
-
-    .upload-status.show {
-        display: block;
-    }
-
-    .upload-status.success {
-        background: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-
-    .upload-status.error {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-    }
-
-    .upload-status.loading {
-        background: #d1ecf1;
-        color: #0c5460;
-        border: 1px solid #bee5eb;
-    }
 
 </style>
 </head>
@@ -1414,127 +1310,6 @@ ${htmlContent}
     
     $("status").innerHTML = '<div class="status" style="background:#d4edda; border-color:#28a745;">✅ File Word berhasil didownload!</div>';
 }
-
-// ===== HANDLING UPLOAD ERROR =====
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // Tangani semua gambar yang gagal dimuat
-    document.querySelectorAll('img').forEach(img => {
-        img.addEventListener('error', function() {
-            // Sembunyikan gambar yang gagal
-            this.style.display = 'none';
-            
-            // Tampilkan pesan error
-            const errorMsg = document.createElement('div');
-            errorMsg.className = 'upload-error';
-            errorMsg.innerHTML = `<strong>⚠️ Gagal memuat gambar:</strong> ${this.alt || 'Gambar tidak tersedia'}`;
-            this.parentNode.insertBefore(errorMsg, this);
-        });
-    });
-
-    // Tangani error pada fetch/API calls
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-        return originalFetch.apply(this, args)
-            .then(response => {
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        console.warn('⚠️ Sesi login telah berakhir. Silakan login ulang.');
-                        // Redirect ke halaman login jika perlu
-                        // window.location.href = '/admin/login';
-                    } else if (response.status === 404) {
-                        console.warn('⚠️ Data tidak ditemukan (404).');
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response;
-            })
-            .catch(error => {
-                console.error('❌ Fetch error:', error.message);
-                // Tampilkan notifikasi ke user
-                showNotification('Terjadi kesalahan koneksi. Silakan coba lagi.', 'error');
-                throw error;
-            });
-    };
-});
-
-// ===== FUNGSI NOTIFIKASI =====
-function showNotification(message, type = 'info') {
-    const colors = {
-        info: '#d1ecf1',
-        success: '#d4edda',
-        error: '#f8d7da',
-        warning: '#fff3cd'
-    };
-    const textColors = {
-        info: '#0c5460',
-        success: '#155724',
-        error: '#721c24',
-        warning: '#856404'
-    };
-    
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        background: ${colors[type] || colors.info};
-        color: ${textColors[type] || textColors.info};
-        border: 1px solid ${colors[type] || colors.info};
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 9999;
-        max-width: 400px;
-        font-size: 11pt;
-        animation: slideInRight 0.3s ease;
-        font-family: 'Times New Roman', serif;
-    `;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    // Hapus setelah 5 detik
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transition = 'opacity 0.5s ease';
-        setTimeout(() => notification.remove(), 500);
-    }, 5000);
-}
-
-// ===== ANIMASI NOTIFIKASI =====
-const styleAnim = document.createElement('style');
-styleAnim.textContent = `
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-`;
-document.head.appendChild(styleAnim);
-
-// ===== FALLBACK UNTUK GAMBAR CLOUDINARY =====
-function getCloudinaryImage(url, fallbackUrl = '') {
-    if (!url) return fallbackUrl;
-    
-    // Cek apakah URL dari Cloudinary
-    if (url.includes('cloudinary.com')) {
-        // Tambahkan parameter untuk optimasi dan fallback
-        const separator = url.includes('?') ? '&' : '?';
-        return url + separator + 'f_auto,q_auto';
-    }
-    
-    return url;
-}
-
-// Gunakan fungsi ini saat menampilkan gambar
-// Contoh:
-// <img src="${getCloudinaryImage(imageUrl, '/images/default.jpg')}" alt="...">
 
 // ===== SAVE & LOAD (INTERNAL BROWSER) =====
 function save(){
