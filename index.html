@@ -1,0 +1,1319 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laporan Generator Pendataan</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eee;font:13px Arial;color:#222}
+.wrap{max-width:1180px;margin:16px auto;background:#fff;box-shadow:0 2px 10px #bbb}
+header{padding:14px 22px;border-bottom:1px solid #aaa}h1{font-size:19px;margin:0}header small{color:#666}
+.bar{background:#888;color:#fff;font-weight:bold;padding:8px 14px}.sec{padding:18px 22px}
+.sub{font-weight:bold;font-size:15px;margin:0 0 12px}.grid{display:grid;grid-template-columns:150px 1fr;gap:10px 14px;align-items:center}
+input,select,textarea{width:100%;padding:8px;border:1px solid #aaa;border-radius:3px;font:inherit}textarea{min-height:70px}
+.card{border:1px solid #aaa;background:#fafafa;padding:11px;margin:9px 0}.head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.btn{padding:8px 13px;border:1px solid #777;background:#ddd;border-radius:3px;cursor:pointer;font-weight:bold}.btn:hover{background:#ccc}
+.primary{background:#666;color:#fff}.success{background:#477052;color:#fff}.danger{background:#994b4b;color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.cols{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.nav{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}.pill{padding:7px 11px;border:1px solid #999;background:#eee;cursor:pointer}.active{background:#666;color:#fff}
+.day{border:1px solid #aaa;margin:12px 0}.day h4{margin:0;background:#ddd;padding:9px}.daybody{padding:10px}.last{border-left:5px solid #555}
+.sls{border:1px solid #ccc;background:#fafafa;padding:9px;margin:8px 0}.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.metrics label{font-size:11px}
+.status{margin:10px 0;padding:9px;background:#f1f1f1;border-left:4px solid #777}.err{background:#fee;border-color:#a33}
+.doc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.photo-item{border:1px solid #aaa;padding:9px;background:#fff}.photo-item img{width:100%;height:200px;object-fit:contain;background:#eee;border:1px solid #ddd}
+.preview{border:1px solid #999;padding:28px;font:12pt/1.5 "Times New Roman";background:white}.preview p{text-align:justify}
+.hidden{display:none!important}footer{padding:12px 22px;border-top:1px solid #aaa;color:#777;font-size:11px}
+.excel-toolbar{position:sticky;top:0;z-index:999;background:#f8f8f8;padding:10px 22px;border-bottom:2px solid #888;box-shadow:0 2px 8px rgba(0,0,0,0.15);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.excel-toolbar .btn{margin:0}
+.excel-toolbar .label-tool{font-weight:bold;color:#555;margin-right:5px}
+.excel-toolbar .spacer{flex:1}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.photo-item .preview-img{width:100%;height:180px;object-fit:contain;background:#f5f5f5;border:1px solid #ddd;border-radius:3px}
+.tanggal-range{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tanggal-range input{flex:1;min-width:120px}
+.tanggal-range span{font-weight:bold}
+@media(max-width:800px){.grid,.cols,.metrics,.doc-grid,.photo-grid{grid-template-columns:1fr}.wrap{margin:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>Generator Laporan Pendataan</h1><small>Versi lokal — tanpa AI, Vercel, API, atau server eksternal.</small></header>
+
+<div class="excel-toolbar" id="excelToolbar">
+    <span class="label-tool">📊 Excel:</span>
+    <button class="btn success" onclick="exportExcel()">📥 Download Excel</button>
+    <button class="btn" onclick="document.getElementById('fileInput').click()">📤 Upload Excel</button>
+    <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importExcel(event)">
+    <span class="spacer"></span>
+    <button class="btn" onclick="save()">💾 Simpan</button>
+    <button class="btn" onclick="load()">📂 Muat</button>
+    <button class="btn danger" onclick="resetAll()">🗑 Reset</button>
+</div>
+
+<div class="bar">Menu Laporan</div>
+<div class="sec">
+<div class="sub">Nama Petugas</div>
+<div id="petugas-container"></div>
+<button class="btn" onclick="addPetugas()">Tambah Petugas</button>
+
+<div class="sub" style="margin-top:22px">Tujuan</div>
+<div class="grid">
+<label>Tujuan</label><input id="tujuan" placeholder="Input semua kampung tujuan sesuai surat tugas">
+</div>
+
+<div class="sub" style="margin-top:22px">Tanggal Tugas</div>
+<div class="grid">
+<label>Rentang Tanggal</label>
+<div class="tanggal-range">
+    <input id="tanggalAwal" type="text" placeholder="dd/mm/yyyy" onchange="validateDateFormat(this)">
+    <span>s.d.</span>
+    <input id="tanggalAkhir" type="text" placeholder="dd/mm/yyyy" onchange="validateDateFormat(this)">
+</div>
+</div>
+
+<div class="sub" style="margin-top:22px">Perihal</div>
+<div class="grid">
+<label>Perihal</label><input id="perihal" value="Pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026">
+</div>
+
+<div class="sub" style="margin-top:22px">Nomor Surat Tugas</div>
+<div class="grid">
+<label>Nomor Surat Tugas</label><input id="nomorSurat" placeholder="Contoh: 123/ST/2026">
+</div>
+
+<div class="sub" style="margin-top:22px">Kampung Tujuan</div>
+<div id="kampung"></div><button class="btn" onclick="addKampung()">Tambah Kampung</button>
+
+<div class="sub" style="margin-top:22px">Wilayah Tugas</div>
+<div id="wilayah"></div><button class="btn" onclick="addWilayah()">Tambah Wilayah Tugas</button>
+
+<div class="row">
+<button class="btn primary" onclick="generate()">Generate Form Progres</button>
+</div>
+<div id="status"></div>
+</div>
+
+<div id="progress" class="hidden">
+<div class="bar">Generate Form Progres</div><div class="sec">
+<div id="nav" class="nav"></div><div id="content"></div>
+</div></div>
+
+<div class="bar">Menu Dokumentasi</div>
+<div class="sec">
+<div class="sub">Dokumentasi per Kampung & Perahu</div>
+<div id="docNav" class="nav"></div>
+<div id="docContent"></div>
+</div>
+
+<div class="bar">Menu Buat Word</div>
+<div class="sec">
+<div class="row"><button class="btn primary" onclick="preview()">Preview Laporan</button><button class="btn success" onclick="word()">Download Word</button></div>
+<div id="preview" class="preview hidden"></div>
+</div>
+<footer>Semua data diproses di komputer/browser Anda.</footer>
+</div>
+
+<script>
+// STATE GLOBAL
+const S={
+    petugas:[],
+    tujuan:"",
+    tanggalAwal:"",
+    tanggalAkhir:"",
+    perihal:"Pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026",
+    nomorSurat:"",
+    kampung:[],
+    wilayah:[],
+    p:{},
+    photos:{},
+    v:0, // Indeks kampung untuk Progress
+    docV:0, // Indeks kampung untuk Dokumentasi
+    docMode:'kampung' // 'kampung' atau 'perahu'
+};
+
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const dates=(a,b)=>{let r=[];if(!a||!b)return r;let d=new Date(a+"T00:00:00"),e=new Date(b+"T00:00:00");while(d<=e){r.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1)}return r};
+
+// ===== FUNGSI TANGGAL YANG SUDAH DIPERBAIKI =====
+function fmt(x){
+    if(!x) return "";
+    let d = new Date(x + "T00:00:00");
+    if(isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("id-ID", {day:"numeric", month:"long", year:"numeric"});
+}
+
+function formatDate(dateStr){
+    if(!dateStr) return '';
+    let parts = dateStr.split('-');
+    if(parts.length === 3){
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+}
+
+function parseDate(dateStr){
+    if(!dateStr) return '';
+    let parts = dateStr.split('/');
+    if(parts.length === 3){
+        let day = parts[0].padStart(2,'0');
+        let month = parts[1].padStart(2,'0');
+        let year = parts[2];
+        if(year.length === 2) year = '20' + year;
+        return `${year}-${month}-${day}`;
+    }
+    return dateStr;
+}
+
+function validateDateFormat(input){
+    let val = input.value.trim();
+    if(!val) return;
+    let parts = val.split('/');
+    if(parts.length === 3){
+        let day = parseInt(parts[0]);
+        let month = parseInt(parts[1]);
+        let year = parseInt(parts[2]);
+        if(day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900 && year <= 2100){
+            return;
+        }
+    }
+    input.style.borderColor = 'red';
+    setTimeout(() => { input.style.borderColor = ''; }, 3000);
+}
+
+function getDateFromInput(input){
+    let val = input.value.trim();
+    if(!val) return '';
+    let parts = val.split('/');
+    if(parts.length === 3){
+        let day = parts[0].padStart(2,'0');
+        let month = parts[1].padStart(2,'0');
+        let year = parts[2];
+        if(year.length === 2) year = '20' + year;
+        return `${year}-${month}-${day}`;
+    }
+    return '';
+}
+
+function formatTanggalRange(tglAwal, tglAkhir){
+    if(!tglAwal || !tglAkhir) return '';
+    let dAwal = new Date(tglAwal + 'T00:00:00');
+    let dAkhir = new Date(tglAkhir + 'T00:00:00');
+    if(isNaN(dAwal.getTime()) || isNaN(dAkhir.getTime())) return '';
+    
+    let hariAwal = dAwal.getDate();
+    let bulanAwal = dAwal.toLocaleDateString('id-ID', {month:'long'});
+    let tahunAwal = dAwal.getFullYear();
+    let hariAkhir = dAkhir.getDate();
+    let bulanAkhir = dAkhir.toLocaleDateString('id-ID', {month:'long'});
+    let tahunAkhir = dAkhir.getFullYear();
+    
+    if(tahunAwal === tahunAkhir){
+        if(bulanAwal === bulanAkhir){
+            return `${hariAwal} s.d. ${hariAkhir} ${bulanAwal} ${tahunAwal}`;
+        } else {
+            return `${hariAwal} ${bulanAwal} s.d. ${hariAkhir} ${bulanAkhir} ${tahunAwal}`;
+        }
+    } else {
+        return `${hariAwal} ${bulanAwal} ${tahunAwal} s.d. ${hariAkhir} ${bulanAkhir} ${tahunAkhir}`;
+    }
+}
+
+// ===== FUNGSI RESIZE GAMBAR =====
+function resizeImageToHeight(src, targetHeightCm, callback) {
+    const targetHeightPx = targetHeightCm * 37.795;
+    const img = new Image();
+    img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const ratio = img.width / img.height;
+        const targetWidthPx = targetHeightPx * ratio;
+        canvas.width = targetWidthPx;
+        canvas.height = targetHeightPx;
+        ctx.drawImage(img, 0, 0, targetWidthPx, targetHeightPx);
+        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        callback(resizedDataUrl);
+    };
+    img.src = src;
+}
+
+// ===== RENDER PETUGAS =====
+function renderPetugas(){
+    const container = document.getElementById('petugas-container');
+    if(!Array.isArray(S.petugas) || S.petugas.length === 0){
+        S.petugas = [''];
+    }
+    S.petugas = S.petugas.map(p => p || '').filter(p => p !== undefined);
+    if(S.petugas.length === 0) S.petugas = [''];
+    
+    container.innerHTML = S.petugas.map((p, i) => `
+        <div class="card">
+            <div class="head">
+                <b>Petugas ${i+1}</b>
+                <button class="btn danger" onclick="removePetugas(${i})">Hapus</button>
+            </div>
+            <div>
+                <input type="text" value="${esc(p)}" placeholder="Nama petugas" onchange="updatePetugas(${i}, this.value)">
+            </div>
+        </div>
+    `).join('');
+}
+
+function addPetugas(){
+    S.petugas.push('');
+    renderPetugas();
+    renderWilayah();
+}
+
+function removePetugas(index){
+    if(S.petugas.length <= 1){
+        alert('Minimal harus ada 1 petugas!');
+        return;
+    }
+    S.petugas.splice(index, 1);
+    renderPetugas();
+    renderWilayah();
+}
+
+function updatePetugas(index, value){
+    S.petugas[index] = value.trim();
+    renderWilayah();
+}
+
+// ===== KAMPUNG =====
+function addKampung(v={}){
+    S.kampung.push({
+        kampung:v.kampung||"",
+        distrik:v.distrik||"",
+        mengetahui:v.mengetahui||"",
+        jabatan:v.jabatan||""
+    });
+    renderKampung();
+}
+
+function renderKampung() {
+    $("kampung").innerHTML = S.kampung.map((x,i) => `
+        <div class="card">
+            <div class="head">
+                <b>Kampung ${i+1}</b>
+                <button class="btn danger" onclick="S.kampung.splice(${i},1);renderKampung();renderWilayah()">Hapus</button>
+            </div>
+            <div class="cols">
+                <div><label>Kampung</label><input value="${esc(x.kampung)}" onchange="S.kampung[${i}].kampung=this.value;renderWilayah()"></div>
+                <div><label>Distrik</label><input value="${esc(x.distrik)}" onchange="S.kampung[${i}].distrik=this.value"></div>
+                <div><label>Mengetahui</label><input value="${esc(x.mengetahui)}" onchange="S.kampung[${i}].mengetahui=this.value"></div>
+                <div><label>Jabatan</label><input value="${esc(x.jabatan)}" onchange="S.kampung[${i}].jabatan=this.value"></div>
+            </div>
+        </div>
+    `).join("");
+}
+
+// ===== WILAYAH =====
+function addWilayah(v={}){
+    S.wilayah.push({
+        kampung:v.kampung||"",
+        sls:v.sls||"",
+        ppl:v.ppl||"",
+        start:v.start||"",
+        end:v.end||""
+    });
+    renderWilayah();
+}
+
+function renderWilayah() {
+    let html = '';
+    S.wilayah.forEach((x, i) => {
+        let kampungOpts = S.kampung.map(k => 
+            `<option value="${esc(k.kampung)}" ${k.kampung === x.kampung ? 'selected' : ''}>${esc(k.kampung)}</option>`
+        ).join('');
+        
+        let pplOpts = S.petugas.map(p => 
+            `<option value="${esc(p)}" ${p === x.ppl ? 'selected' : ''}>${esc(p)}</option>`
+        ).join('');
+        
+        let startDisplay = formatDate(x.start);
+        let endDisplay = formatDate(x.end);
+        
+        html += `<div class="card"><div class="head"><b>Wilayah Tugas ${i+1}</b><button class="btn danger" onclick="S.wilayah.splice(${i},1);renderWilayah()">Hapus</button></div>
+        <div class="cols">
+            <div><label>Kampung</label><select onchange="S.wilayah[${i}].kampung=this.value">
+                <option value="">Pilih kampung</option>
+                ${kampungOpts}
+            </select></div>
+            <div><label>SLS</label><input value="${esc(x.sls)}" onchange="S.wilayah[${i}].sls=this.value"></div>
+            <div><label>Nama PPL</label><select onchange="S.wilayah[${i}].ppl=this.value">
+                <option value="">Pilih PPL</option>
+                ${pplOpts}
+            </select></div>
+            <div><label>Tanggal awal</label><input type="text" placeholder="dd/mm/yyyy" value="${startDisplay}" onchange="S.wilayah[${i}].start=parseDate(this.value)"></div>
+            <div><label>Tanggal akhir</label><input type="text" placeholder="dd/mm/yyyy" value="${endDisplay}" onchange="S.wilayah[${i}].end=parseDate(this.value)"></div>
+        </div></div>`;
+    });
+    
+    $("wilayah").innerHTML = html;
+}
+
+function group(){let m=new Map();S.wilayah.forEach(w=>{if(!m.has(w.kampung)){let k=S.kampung.find(z=>z.kampung===w.kampung)||{};m.set(w.kampung,{name:w.kampung,distrik:w.distrik||k.distrik||"",items:[]})}m.get(w.kampung).items.push(w)});return [...m.values()]}
+
+function validate(){
+    let petugasNama = S.petugas.filter(p => p.trim()).join(', ');
+    S.tujuan = document.getElementById('tujuan').value.trim();
+    S.tanggalAwal = getDateFromInput(document.getElementById('tanggalAwal'));
+    S.tanggalAkhir = getDateFromInput(document.getElementById('tanggalAkhir'));
+    S.perihal = document.getElementById('perihal').value.trim();
+    S.nomorSurat = document.getElementById('nomorSurat').value.trim();
+    
+    if(!S.petugas.length || !S.petugas.some(p => p.trim())) return "Nama petugas belum diisi.";
+    if(!S.tujuan) return "Tujuan belum diisi.";
+    if(!S.perihal) return "Perihal belum diisi.";
+    if(!S.nomorSurat) return "Nomor Surat Tugas belum diisi.";
+    if(!S.kampung.length) return "Tambahkan kampung.";
+    if(!S.wilayah.length) return "Tambahkan wilayah tugas.";
+    for(let i=0;i<S.wilayah.length;i++){let w=S.wilayah[i];if(!w.kampung||!w.sls||!w.ppl||!w.start||!w.end)return`Wilayah Tugas ${i+1} belum lengkap.`;if(w.start>w.end)return`Tanggal Wilayah Tugas ${i+1} salah.`}
+    return "";
+}
+
+// ===== GENERATE =====
+function generate(){
+    let e=validate();
+    if(e){$("status").innerHTML=`<div class="status err">${esc(e)}</div>`;return}
+    
+    group().forEach(v=>{
+        if(!S.photos[v.name]) S.photos[v.name] = [];
+        if(S.photos[v.name].length === 0) S.photos[v.name].push({src:"",caption:""});
+    });
+    
+    group().forEach(v=>{
+        S.p[v.name]??={};
+        let ds=[...new Set(v.items.flatMap(w=>dates(w.start,w.end)))].sort();
+        ds.forEach(d=>{
+            S.p[v.name][d]??={notes:"", items:{}};
+            v.items.filter(w=>d>=w.start&&d<=w.end).forEach(w=>{
+                let k=w.sls+"||"+w.ppl;
+                S.p[v.name][d].items[k]??={
+                    sls:w.sls,
+                    ppl:w.ppl,
+                    assignment:"",
+                    bku:"",
+                    keluarga:"",
+                    bangunan:"",
+                    usaha:"",
+                    notes:""
+                };
+            });
+        });
+    });
+    
+    S.v=0;
+    S.docV=0;
+    S.docMode='kampung';
+    renderProgress();
+    renderDokumentasi();
+    $("progress").classList.remove("hidden");
+    $("status").innerHTML = '<div class="status">✅ Form progres dan dokumentasi berhasil digenerate.</div>';
+}
+
+// ===== PROGRESS =====
+function setVal(v,d,k,f,val){S.p[v][d].items[k][f]=val}
+
+function metric(v,d,k,f,n){
+    let x=S.p[v][d].items[k];
+    return`<div><label>${n}</label><input type="number" min="0" value="${esc(x[f])}" onchange="setVal('${esc(v)}','${d}','${esc(k)}','${f}',this.value)"></div>`;
+}
+
+function renderProgress(){
+    let vs=group(),v=vs[S.v],ds=Object.keys(S.p[v.name]).sort();
+    $("nav").innerHTML=vs.map((x,i)=>`<button class="pill ${i===S.v?"active":""}" onclick="S.v=${i};renderProgress()">${i+1}. ${esc(x.name)}</button>`).join("");
+    let h=`<div class="card"><h3 style="margin:0">${esc(v.name)}</h3><small>Distrik ${esc(v.distrik)}</small></div>`;
+    ds.forEach((d,i)=>{
+        let last=i===ds.length-1;
+        h+=`<div class="day ${last?"last":""}"><h4>${fmt(d)} ${last?" — HARI TERAKHIR KAMPUNG":""}</h4><div class="daybody">`;
+        v.items.filter(w=>d>=w.start&&d<=w.end).forEach(w=>{
+            let k=w.sls+"||"+w.ppl;
+            let x=S.p[v.name][d].items[k];
+            h+=`<div class="sls"><b>${esc(w.sls)} — ${esc(w.ppl)}</b><div class="metrics">
+                ${metric(v.name,d,k,"assignment","Assignment")}
+                ${metric(v.name,d,k,"bku","BKU")}
+                ${metric(v.name,d,k,"keluarga","Keluarga")}
+                ${metric(v.name,d,k,"bangunan","Bangunan Lainnya")}
+                ${metric(v.name,d,k,"usaha","Usaha")}
+            </div>
+            <div style="margin-top:7px"><input placeholder="Catatan SLS" value="${esc(x.notes)}" onchange="setVal('${esc(v.name)}','${d}','${esc(k)}','notes',this.value)"></div></div>`;
+        });
+        h+=`</div></div>`;
+    });
+    h+=`<div class="row"><button class="btn" onclick="save()">Simpan</button>${S.v?`<button class="btn" onclick="S.v--;renderProgress()">Kampung Sebelumnya</button>`:""}${S.v<vs.length-1?`<button class="btn primary" onclick="S.v++;renderProgress()">Kampung Selanjutnya</button>`:`<button class="btn success" onclick="preview()">Preview Word</button>`}</div>`;
+    $("content").innerHTML=h;
+}
+
+// ===== DOKUMENTASI =====
+function renderDokumentasi(){
+    let vs = group();
+    if(vs.length === 0){
+        $("docNav").innerHTML = '<p style="color:#999">Belum ada kampung. Generate form progres terlebih dahulu.</p>';
+        $("docContent").innerHTML = '';
+        return;
+    }
+    
+    // === TAMPILKAN TAB KAMPUNG ===
+    let navHTML = vs.map((x,i)=>`
+        <button class="pill ${S.docMode==='kampung' && i===S.docV?'active':''}" onclick="S.docMode='kampung';S.docV=${i};renderDokumentasi()">
+            ${i+1}. ${esc(x.name)}
+        </button>
+    `).join('');
+    
+    // === TAMBAHKAN TAB PERAHU DI AKHIR ===
+    navHTML += `
+        <button class="pill ${S.docMode==='perahu'?'active':''}" onclick="S.docMode='perahu';renderDokumentasi()" style="background:#0C3B63; color:white; font-weight:bold;">
+            🚤 Perahu
+        </button>
+    `;
+    $("docNav").innerHTML = navHTML;
+    
+    // === JIKA YANG DIPILIH ADALAH PERAHU ===
+    if(S.docMode === 'perahu'){
+        if(!S.photos["Perahu"] || S.photos["Perahu"].length === 0){
+            S.photos["Perahu"] = [
+                {src:"", caption:"Dokumentasi diatas perahu"},
+                {src:"", caption:"Foto KTP Motoris"}
+            ];
+        }
+        renderDokumentasiPerahu();
+        return;
+    }
+    
+    // === JIKA YANG DIPILIH ADALAH KAMPUNG ===
+    let v = vs[S.docV];
+    if(!S.photos[v.name]) S.photos[v.name] = [{src:"",caption:""}];
+    
+    let h = `<div class="card"><h3 style="margin:0">${esc(v.name)}</h3><small>Distrik ${esc(v.distrik)}</small></div>`;
+    h += `<div class="photo-grid" id="photoGrid_${S.docV}">`;
+    
+    S.photos[v.name].forEach((p, i) => {
+        h += `<div class="photo-item">
+            <div class="head" style="margin-bottom:6px">
+                <b>Gambar ${i+1}</b>
+                <button class="btn danger" onclick="removePhoto(${S.docV}, ${i})" style="padding:4px 8px;font-size:11px">Hapus</button>
+            </div>
+            <div class="preview-img">
+                ${p.src ? `<img src="${p.src}" style="width:100%;height:100%;object-fit:contain">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#999">Belum ada gambar</div>'}
+            </div>
+            <input type="file" accept="image/*" onchange="uploadPhoto(${S.docV}, ${i}, this)" style="margin-top:6px;width:100%">
+            <input type="text" placeholder="Caption gambar" value="${esc(p.caption)}" onchange="updateCaption(${S.docV}, ${i}, this.value)" style="margin-top:6px;width:100%;padding:6px;border:1px solid #ddd;border-radius:3px">
+        </div>`;
+    });
+    
+    h += `</div>`;
+    h += `<div class="row"><button class="btn" onclick="addPhoto(${S.docV})">Tambah Gambar</button></div>`;
+    h += `<div class="row" style="margin-top:8px">
+        ${S.docV>0?`<button class="btn" onclick="S.docMode='kampung';S.docV--;renderDokumentasi()">Kampung Sebelumnya</button>`:''}
+        ${S.docV<vs.length-1?`<button class="btn primary" onclick="S.docMode='kampung';S.docV++;renderDokumentasi()">Kampung Selanjutnya</button>`:''}
+    </div>`;
+    
+    $("docContent").innerHTML = h;
+}
+
+// ===== RENDER DOKUMENTASI PERAHU (TAMBAHAN BARU) =====
+function renderDokumentasiPerahu(){
+    let perahuPhotos = S.photos["Perahu"] || [];
+    if(perahuPhotos.length === 0){
+        perahuPhotos = [
+            {src:"", caption:"Dokumentasi diatas perahu"},
+            {src:"", caption:"Foto KTP Motoris"}
+        ];
+        S.photos["Perahu"] = perahuPhotos;
+    }
+    
+    let h = `<div class="card"><h3 style="margin:0">🚤 Dokumentasi Perahu</h3><small>Dokumentasi perjalanan dinas menggunakan perahu</small></div>`;
+    h += `<div class="photo-grid">`;
+    
+    perahuPhotos.forEach((p, i) => {
+        h += `<div class="photo-item">
+            <div class="head" style="margin-bottom:6px">
+                <b>Gambar Perahu ${i+1}</b>
+                <button class="btn danger" onclick="removePhotoPerahu(${i})" style="padding:4px 8px;font-size:11px">Hapus</button>
+            </div>
+            <div class="preview-img">
+                ${p.src ? `<img src="${p.src}" style="width:100%;height:100%;object-fit:contain">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#999">Belum ada gambar</div>'}
+            </div>
+            <input type="file" accept="image/*" onchange="uploadPhotoPerahu(${i}, this)" style="margin-top:6px;width:100%">
+            <input type="text" placeholder="Caption gambar" value="${esc(p.caption)}" onchange="updateCaptionPerahu(${i}, this.value)" style="margin-top:6px;width:100%;padding:6px;border:1px solid #ddd;border-radius:3px">
+        </div>`;
+    });
+    
+    h += `</div>`;
+    h += `<div class="row"><button class="btn" onclick="addPhotoPerahu()">Tambah Gambar Perahu</button></div>`;
+    h += `<div class="row" style="margin-top:8px">
+        <button class="btn" onclick="S.docMode='kampung';S.docV=0;renderDokumentasi()">Kembali ke Kampung</button>
+    </div>`;
+    
+    $("docContent").innerHTML = h;
+}
+
+// ===== FUNGSI PERAHU =====
+function addPhotoPerahu(){
+    if(!S.photos["Perahu"]) S.photos["Perahu"] = [];
+    S.photos["Perahu"].push({src:"",caption:""});
+    renderDokumentasiPerahu();
+}
+
+function removePhotoPerahu(index){
+    if(S.photos["Perahu"].length <= 1){
+        alert('Minimal harus ada 1 gambar perahu!');
+        return;
+    }
+    S.photos["Perahu"].splice(index, 1);
+    renderDokumentasiPerahu();
+}
+
+function uploadPhotoPerahu(index, input){
+    let file = input.files[0];
+    if(!file) return;
+    let reader = new FileReader();
+    reader.onload = function(e){
+        S.photos["Perahu"][index].src = e.target.result;
+        renderDokumentasiPerahu();
+    };
+    reader.readAsDataURL(file);
+}
+
+function updateCaptionPerahu(index, value){
+    S.photos["Perahu"][index].caption = value;
+}
+
+// ===== FUNGSI KAMPUNG =====
+function addPhoto(index){
+    let vs = group();
+    let v = vs[index];
+    if(!S.photos[v.name]) S.photos[v.name] = [];
+    S.photos[v.name].push({src:"",caption:""});
+    renderDokumentasi();
+}
+
+function removePhoto(index, photoIndex){
+    let vs = group();
+    let v = vs[index];
+    if(S.photos[v.name].length <= 1){
+        alert('Minimal harus ada 1 gambar per kampung!');
+        return;
+    }
+    S.photos[v.name].splice(photoIndex, 1);
+    renderDokumentasi();
+}
+
+function uploadPhoto(index, photoIndex, input){
+    let file = input.files[0];
+    if(!file) return;
+    let reader = new FileReader();
+    reader.onload = function(e){
+        let vs = group();
+        let v = vs[index];
+        S.photos[v.name][photoIndex].src = e.target.result;
+        renderDokumentasi();
+    };
+    reader.readAsDataURL(file);
+}
+
+function updateCaption(index, photoIndex, value){
+    let vs = group();
+    let v = vs[index];
+    S.photos[v.name][photoIndex].caption = value;
+}
+
+// ===== NARRATIVE FOR TABLE =====
+function generateNarrativeTable(){
+    let out = "";
+    let vs = group();
+    let totalKampung = vs.length;
+    
+    vs.forEach((v, vi) => {
+        let aparatData = S.kampung.find(k => k.kampung === v.name);
+        let namaAparat = aparatData && aparatData.mengetahui ? aparatData.mengetahui : "Kepala Kampung";
+        let jabatanAparat = aparatData && aparatData.jabatan ? aparatData.jabatan : "Kepala Kampung";
+        
+        let ds = Object.keys(S.p[v.name]||{}).sort();
+        let firstDay = true;
+        let isLastKampung = (vi === totalKampung - 1);
+        
+        ds.forEach((d, di) => {
+            let last = di === ds.length - 1;
+            let isLastDay = isLastKampung && last;
+            
+            out += `<p style="margin-top:12pt;margin-bottom:0pt;"><b>${fmt(d)}</b></p>`;
+            out += `<ul style="margin-top:3pt;margin-bottom:0pt;padding-left:20pt;">`;
+            
+            if (vi === 0 && firstDay) {
+                out += `<li>Tim berangkat dari Waisai menuju ${esc(v.name)}, Distrik ${esc(v.distrik)}, menggunakan transportasi perahu motor. Tim tiba di kampung tujuan dan mempersiapkan pelaksanaan pendataan lapangan.</li>`;
+                firstDay = false;
+            } 
+            else if (firstDay && vi > 0) {
+                out += `<li>Tim melakukan perjalanan dari ${esc(vs[vi-1].name)} menuju ${esc(v.name)}, Distrik ${esc(v.distrik)}. Setelah tiba, tim melakukan koordinasi dengan aparat kampung untuk izin dan persiapan pelaksanaan pendataan.</li>`;
+                firstDay = false;
+            }
+            
+            if (di === 0) {
+                out += `<li>Tim menemui Bapak ${esc(namaAparat)} selaku ${esc(jabatanAparat)} ${esc(v.name)}.</li>`;
+                out += `<li>Tim meminta visum Surat Tugas serta menyampaikan maksud dan tujuan pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026 kepada aparat kampung.</li>`;
+                out += `<li>Setelah memperoleh izin, masing-masing petugas menuju wilayah tugas untuk melakukan penelusuran wilayah dan dilanjutkan dengan pendataan door to door.</li>`;
+            }
+            
+            Object.values(S.p[v.name][d].items).forEach(x => {
+                let a = +x.assignment || 0, b = +x.bku || 0, k = +x.keluarga || 0, bl = +x.bangunan || 0, u = +x.usaha || 0;
+                if (!a && !b && !k && !bl && !u && !x.notes) {
+                    out += `<li>PPL ${esc(x.ppl)} melakukan pendataan di SLS ${esc(x.sls)} dan tidak ada data yang berhasil didata pada hari ini.</li>`;
+                    return;
+                }
+                let r = [];
+                if (b) r.push(`${b} BKU`);
+                if (k) r.push(`${k} Keluarga`);
+                if (bl) r.push(`${bl} Bangunan Lainnya`);
+                let detail = r.length ? `, dengan rincian ${r.join(", ")}.` : ".";
+                out += `<li>PPL ${esc(x.ppl)} melakukan pendataan di SLS ${esc(x.sls)} dan berhasil mendata serta submit sebanyak <b>${a}</b> assignment${detail} Total usaha yang ditemukan sebanyak <b>${u}</b> usaha.${x.notes ? " " + esc(x.notes) : ""}</li>`;
+            });
+            
+            if (isLastDay) {
+                out += `<li>Petugas melakukan pengecekan administrasi dan kelengkapan hasil pendataan sebagai tahap akhir kegiatan lapangan.</li>`;
+                out += `<li>Setelah seluruh hasil pendataan dinyatakan lengkap, tim mempersiapkan keberangkatan kembali menuju Waisai.</li>`;
+                out += `<li>Tim meninggalkan Kampung ${esc(v.name)} dan melakukan perjalanan kembali ke Waisai.</li>`;
+                
+                let tglAwal = document.getElementById('tanggalAwal').value.trim();
+                let tglAkhir = document.getElementById('tanggalAkhir').value.trim();
+                let tglAwalDisplay = tglAwal || S.tanggalAwal ? formatTanggalRange(S.tanggalAwal, S.tanggalAkhir) : '';
+                let rangeText = tglAwalDisplay || `${fmt(S.tanggalAwal)} sampai ${fmt(S.tanggalAkhir)}`;
+                
+                out += `<li>Dengan keberangkatan tersebut, rangkaian kegiatan pendataan lapangan pada periode ${rangeText} dinyatakan selesai.</li>`;
+            }
+            
+            out += `</ul>`;
+        });
+    });
+    
+    return out;
+}
+
+// ===== PREVIEW & WORD =====
+function generateWordHTML(resizedImages){
+    let docHtml = '';
+    let vs = group();
+    
+    // Ambil data dari form
+    let tujuan = esc(document.getElementById('tujuan').value.trim());
+    let tanggalAwal = getDateFromInput(document.getElementById('tanggalAwal'));
+    let tanggalAkhir = getDateFromInput(document.getElementById('tanggalAkhir'));
+    let perihal = esc(document.getElementById('perihal').value.trim());
+    let nomorSurat = esc(document.getElementById('nomorSurat').value.trim());
+    
+    // Format tanggal range
+    let tanggalDisplay = formatTanggalRange(tanggalAwal, tanggalAkhir);
+    
+    // Daftar nama PPL (unique)
+    let pplNames = [];
+    S.wilayah.forEach(w => {
+        if(w.ppl && w.ppl.trim() && !pplNames.includes(w.ppl.trim())){
+            pplNames.push(w.ppl.trim());
+        }
+    });
+    if(pplNames.length === 0){
+        pplNames = S.petugas.filter(p => p.trim());
+    }
+    
+    // Buat table HTML
+    docHtml += `<tr>
+        <td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;">
+            <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">LAPORAN PERJALANAN DINAS</p>
+            <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;"> </p>
+            <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;"> </p>
+        </td>
+    </tr>`;
+    docHtml += `<table style="width:100%;border-collapse:collapse;font-family:'Times New Roman',serif;font-size:12pt;border:1px solid #000;">`;
+    docHtml += `<tr>
+        <td style="border:1px solid #000;padding:8px;vertical-align:top;width:50%;"><b>Tujuan:</b> ${tujuan}</td>
+        <td style="border:1px solid #000;padding:8px;vertical-align:top;width:50%;"><b>Nama:</b><br>${pplNames.map((p,i) => `${i+1}. ${esc(p)}`).join('<br>')}</td>
+    </tr>`;
+    
+    docHtml += `<tr>
+        <td style="border:1px solid #000;padding:8px;vertical-align:top;"><b>Tanggal Tugas:</b> ${tanggalDisplay}</td>
+        <td style="border:1px solid #000;padding:8px;vertical-align:top;"></td>
+    </tr>`;
+    
+    // ===== TANDA TANGAN dengan space antar nomor =====
+    docHtml += `<tr>
+        <td style="border:1px solid #000;padding:8px;vertical-align:top;"><b>Perihal:</b> ${perihal}</td>
+        <td style="border:1px solid #000;padding:8px;vertical-align:top;padding-top:20px;padding-bottom:20px;">
+            <b>Tanda Tangan</b><br><br>
+            ${pplNames.map((p,i) => `${i+1}. <span style="color:white;">${esc(p)}</span><br><br>`).join('')}
+        </td>
+    </tr>`;
+    
+    docHtml += `<tr>
+        <td colspan="2" style="border:1px solid #000;padding:8px;vertical-align:top;"><b>Nomor Surat Tugas:</b> ${nomorSurat}</td>
+    </tr>`;
+    
+    docHtml += `<tr>
+        <td colspan="2" style="border:1px solid #000;padding:8px;vertical-align:top;">
+            ${generateNarrativeTable()}
+        </td>
+    </tr>`;
+    
+    docHtml += `<tr>
+        <td style="border:none;padding:8px;vertical-align:top;width:50%;"></td>
+        <td style="border:none;padding:8px;vertical-align:bottom;text-align:center;width:50%;">
+            <div style="text-align:center;padding-top:60px;padding-bottom:20px;">
+                <p style="text-align:center;margin:0;padding:0;font-weight:normal;">Mengetahui</p>
+                <p style="text-align:center;margin:0;padding:0;font-weight:normal;">Kepala BPS Kabupaten Raja Ampat</p>
+                <br><br><br><br><br><br>
+                <p style="text-align:center;margin:0;padding:0;font-weight:bold;text-decoration:underline;">Frida Irian S. Ompusunggu, SST, M.Ling.</p>
+                <p style="text-align:center;margin:0;padding:0;">NIP. 19860407 200902 2 004</p>
+            </div>
+        </td>
+    </tr>`;
+    
+    docHtml += `</table>`;
+    
+    // ===== DOKUMENTASI KAMPUNG =====
+    vs.forEach((v, index) => {
+        let photos = S.photos[v.name] || [];
+        let hasPhoto = photos.some(p => p.src);
+        if(hasPhoto){
+            if(index === 0){
+                docHtml += `<div style="margin-top:0;margin-bottom:0;">`;
+                docHtml += `<!--[if gte mso 9]>
+                <br clear="all" style="mso-break-type:section-break;page-break-before:always;">
+                <![endif]-->`;
+            } else {
+                docHtml += `<div style="margin-top:0;margin-bottom:0;">`;
+                docHtml += `<!--[if gte mso 9]>
+                <br clear="all" style="mso-break-type:section-break;page-break-before:always;">
+                <![endif]-->`;
+            }
+            
+            docHtml += `<table style="width:100%;border-collapse:collapse;border:none;mso-table-lspace:0;mso-table-rspace:0;margin-top:0;margin-bottom:0;">`;
+            
+            const titlePart1 = "DOKUMENTASI PERJALANAN DINAS PELAKSANAAN LAPANGAN".trim();
+            const titlePart2 = "SENSUS EKONOMI 2026".trim();
+            const titlePart3 = esc(v.name).toUpperCase().trim();
+
+            docHtml += `<tr>
+            <td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;">
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">${titlePart1}</p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">${titlePart2}</p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">${titlePart3}</p>
+            </td>
+            </tr>`;
+            
+            photos.forEach((p, idx) => {
+                if(p.src){
+                    let imgSrc = p.src;
+                    let key = v.name + '_' + idx;
+                    if(resizedImages && resizedImages[key]){
+                        imgSrc = resizedImages[key];
+                    }
+                    
+                    docHtml += `<tr>
+                        <td style="border:none;padding:10px 0;text-align:center;vertical-align:top;">
+                            <img src="${imgSrc}" style="height:347pt;width:auto;max-width:100%;object-fit:contain;border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;mso-height-rule:exactly;">
+                            ${p.caption ? `<p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(p.caption)}</p>` : ''}
+                        </td>
+                    </tr>`;
+                }
+            });
+            
+            docHtml += `</table>`;
+            docHtml += `</div>`;
+        }
+    });
+
+    // ===== DOKUMENTASI PERAHU =====
+    let perahuPhotos = S.photos["Perahu"] || [];
+    let hasPerahuPhoto = perahuPhotos.some(p => p.src);
+
+    if(!hasPerahuPhoto && vs.length > 0){
+        if(!S.photos["Perahu"]) S.photos["Perahu"] = [];
+        if(S.photos["Perahu"].length === 0){
+            S.photos["Perahu"].push({src:"", caption:"Dokumentasi diatas perahu"});
+            S.photos["Perahu"].push({src:"", caption:"Foto KTP Motoris"});
+        }
+        perahuPhotos = S.photos["Perahu"];
+    }
+
+    let hasPerahu = perahuPhotos.some(p => p.src);
+    if(hasPerahu){
+        // Page break sebelum dokumentasi perahu
+        docHtml += `<div style="margin-top:0;margin-bottom:0;">`;
+        docHtml += `<!--[if gte mso 9]>
+        <br clear="all" style="mso-break-type:section-break;page-break-before:always;">
+        <![endif]-->`;
+        
+        docHtml += `<table style="width:100%;border-collapse:collapse;border:none;mso-table-lspace:0;mso-table-rspace:0;margin-top:0;margin-bottom:0;">`;
+        
+        docHtml += `<tr>
+            <td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;">
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">DOKUMENTASI PERJALANAN DINAS PELAKSANAAN LAPANGAN</p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">SENSUS EKONOMI 2026</p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">DOKUMENTASI PERAHU</p>
+            </td>
+        </tr>`;
+        
+        perahuPhotos.forEach((p, idx) => {
+            if(p.src){
+                let imgSrc = p.src;
+                let key = 'Perahu_' + idx;
+                if(resizedImages && resizedImages[key]){
+                    imgSrc = resizedImages[key];
+                }
+                
+                let defaultCaption = idx === 0 ? "Dokumentasi diatas perahu" : "Foto KTP Motoris";
+                let caption = p.caption || defaultCaption;
+                
+                docHtml += `<tr>
+                    <td style="border:none;padding:10px 0;text-align:center;vertical-align:top;">
+                        <img src="${imgSrc}" style="height:347pt;width:auto;max-width:100%;object-fit:contain;border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;mso-height-rule:exactly;">
+                        <p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(caption)}</p>
+                    </td>
+                </tr>`;
+            }
+        });
+        
+        docHtml += `</table></div>`;
+    }
+    return docHtml;
+}
+
+function preview(){
+    if(validate()){alert(validate());return}
+    $("preview").innerHTML = generateWordHTML(null);
+    $("preview").classList.remove("hidden");
+}
+
+function word(){
+    if(validate()){alert(validate());return}
+    
+    let vs = group();
+    let imagesToResize = [];
+    let imageKeys = [];
+    
+    vs.forEach(v => {
+        let photos = S.photos[v.name] || [];
+        photos.forEach((p, idx) => {
+            if(p.src){
+                let key = v.name + '_' + idx;
+                imagesToResize.push(p.src);
+                imageKeys.push(key);
+            }
+        });
+    });
+    
+    let perahuPhotos = S.photos["Perahu"] || [];
+    perahuPhotos.forEach((p, idx) => {
+        if(p.src){
+            let key = 'Perahu_' + idx;
+            imagesToResize.push(p.src);
+            imageKeys.push(key);
+        }
+    });
+    
+    if(imagesToResize.length > 0){
+        let resizedImages = {};
+        let completed = 0;
+        let total = imagesToResize.length;
+        
+        imagesToResize.forEach((src, idx) => {
+            resizeImageToHeight(src, 9, function(resizedSrc){
+                let key = imageKeys[idx];
+                resizedImages[key] = resizedSrc;
+                completed++;
+                if(completed === total){
+                    generateWordDoc(resizedImages);
+                }
+            });
+        });
+    } else {
+        generateWordDoc({});
+    }
+}
+
+function generateWordDoc(resizedImages){
+    let htmlContent = generateWordHTML(resizedImages);
+    
+    let html = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" 
+      xmlns:w="urn:schemas-microsoft-com:office:word" 
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!--[if gte mso 9]>
+<xml>
+  <w:WordDocument>
+    <w:View>Print</w:View>
+    <w:Zoom>100</w:Zoom>
+    <w:DoNotOptimizeForBrowser/>
+  </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+    /* ===== PAGE SETUP A4 DENGAN MARGIN 2cm ===== */
+    @page {
+        size: 21cm 29.7cm;
+        margin-top: 2cm;
+        margin-right: 2cm;
+        margin-bottom: 2cm;
+        margin-left: 2cm;
+        mso-page-orientation: portrait;
+        mso-page-margin-top: 2cm;
+        mso-page-margin-right: 2cm;
+        mso-page-margin-bottom: 2cm;
+        mso-page-margin-left: 2cm;
+    }
+    
+    body { 
+        font-family: "Times New Roman", Times, serif; 
+        font-size: 12pt; 
+        line-height: 1.5;
+        mso-line-height-rule: exactly;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "Times New Roman", Times, serif;
+        font-size: 12pt;
+    }
+    
+    td {
+        border: 1px solid #000000;
+        padding: 8px;
+        vertical-align: top;
+    }
+    
+    p { 
+        text-align: justify; 
+        margin: 0 0 6pt 0;
+        mso-para-margin-bottom: 6.0pt;
+    }
+    
+    ul {
+        margin-top: 3pt;
+        margin-bottom: 0pt;
+        padding-left: 20pt;
+    }
+    
+    li {
+        text-align: justify;
+        margin-bottom: 3pt;
+        mso-para-margin-bottom: 3.0pt;
+    }
+    
+    h3 {
+        text-align: center;
+        font-size: 12pt;
+        font-weight: bold;
+        margin-top: 18pt;
+        margin-bottom: 12pt;
+        mso-para-margin-top: 18.0pt;
+        mso-para-margin-bottom: 12.0pt;
+    }
+    
+    img {
+        height: 347pt;
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
+        border: 1px solid #cccccc;
+        border-radius: 4px;
+        display: block;
+        margin: 0 auto;
+        mso-height-rule: exactly;
+    }
+    
+    .ttd {
+        text-align: center;
+        padding-top: 60px;
+        padding-bottom: 20px;
+    }
+    .ttd p {
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+    .ttd .nama {
+        font-weight: bold;
+        text-decoration: underline;
+    }
+
+</style>
+</head>
+<body>
+${htmlContent}
+</body>
+</html>`;
+    
+    let blob = new Blob(["\ufeff" + html], {type: "application/msword;charset=utf-8"});
+    let link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Laporan_Pendataan.doc";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// ===== SAVE & LOAD =====
+function save(){
+    S.petugas = S.petugas.map(p => p.trim()).filter(Boolean);
+    if(S.petugas.length === 0) S.petugas = [''];
+    S.tujuan = document.getElementById('tujuan').value.trim();
+    
+    let tglAwalInput = document.getElementById('tanggalAwal').value.trim();
+    let tglAkhirInput = document.getElementById('tanggalAkhir').value.trim();
+    S.tanggalAwal = getDateFromInput(document.getElementById('tanggalAwal'));
+    S.tanggalAkhir = getDateFromInput(document.getElementById('tanggalAkhir'));
+    
+    S.perihal = document.getElementById('perihal').value.trim();
+    S.nomorSurat = document.getElementById('nomorSurat').value.trim();
+    
+    localStorage.setItem("laporanGenerator",JSON.stringify(S));
+    $("status").innerHTML='<div class="status">✅ Data tersimpan di browser.</div>';
+    renderPetugas();
+}
+
+function load(){
+    let x=localStorage.getItem("laporanGenerator");
+    if(!x) return alert("Belum ada data tersimpan.");
+    Object.assign(S,JSON.parse(x));
+    document.getElementById('tujuan').value = S.tujuan || "";
+    
+    if(S.tanggalAwal){
+        let parts = S.tanggalAwal.split('-');
+        if(parts.length === 3){
+            document.getElementById('tanggalAwal').value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+    }
+    if(S.tanggalAkhir){
+        let parts = S.tanggalAkhir.split('-');
+        if(parts.length === 3){
+            document.getElementById('tanggalAkhir').value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+    }
+    
+    document.getElementById('perihal').value = S.perihal || "Pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026";
+    document.getElementById('nomorSurat').value = S.nomorSurat || "";
+    renderKampung();
+    renderWilayah();
+    renderPetugas();
+    if(Object.keys(S.p||{}).length){$("progress").classList.remove("hidden");renderProgress();}
+    renderDokumentasi();
+}
+
+function resetAll(){
+    if(confirm("Hapus semua data?")){
+        localStorage.removeItem("laporanGenerator");
+        location.reload();
+    }
+}
+
+// ===== EXPORT EXCEL =====
+function exportExcel(){
+    let rows = [];
+    rows.push('=== DATA UTAMA ===');
+    rows.push('Nama Petugas,' + S.petugas.filter(p => p.trim()).join('; '));
+    rows.push('Tujuan,' + S.tujuan);
+    rows.push('Tanggal Awal,' + S.tanggalAwal);
+    rows.push('Tanggal Akhir,' + S.tanggalAkhir);
+    rows.push('Perihal,' + S.perihal);
+    rows.push('Nomor Surat Tugas,' + S.nomorSurat);
+    rows.push('');
+    
+    rows.push('=== KAMPUNG TUJUAN ===');
+    rows.push('Kampung,Distrik,Mengetahui,Jabatan');
+    S.kampung.forEach(k => {rows.push(`${k.kampung},${k.distrik},${k.mengetahui},${k.jabatan}`);});
+    rows.push('');
+    
+    rows.push('=== WILAYAH TUGAS ===');
+    rows.push('Kampung,SLS,Nama PPL,Tanggal Awal,Tanggal Akhir');
+    S.wilayah.forEach(w => {rows.push(`${w.kampung},${w.sls},${w.ppl},${formatDate(w.start)},${formatDate(w.end)}`);});
+    rows.push('');
+    
+    rows.push('=== DATA PROGRES ===');
+    rows.push('Kampung,Tanggal,SLS,PPL,Assignment,BKU,Keluarga,Bangunan Lainnya,Usaha,Catatan SLS');
+    let vs = group();
+    vs.forEach(v => {
+        let ds = Object.keys(S.p[v.name]||{}).sort();
+        ds.forEach(d => {
+            Object.values(S.p[v.name][d].items).forEach(x => {
+                rows.push([v.name,fmt(d),x.sls,x.ppl,x.assignment||'0',x.bku||'0',x.keluarga||'0',x.bangunan||'0',x.usaha||'0',x.notes||''].join(','));
+            });
+        });
+    });
+    rows.push('');
+    
+    rows.push('=== DOKUMENTASI ===');
+    rows.push('Kampung,Gambar (base64),Caption');
+    vs.forEach(v => {
+        let photos = S.photos[v.name] || [];
+        photos.forEach(p => {
+            if(p.src){
+                rows.push(`${v.name},"${p.src}",${p.caption||''}`);
+            }
+        });
+    });
+    let perahuPhotos = S.photos["Perahu"] || [];
+    perahuPhotos.forEach(p => {
+        if(p.src){
+            rows.push(`Perahu,"${p.src}",${p.caption||''}`);
+        }
+    });
+    
+    let csvContent = rows.join('\n');
+    let blob = new Blob(['\ufeff' + csvContent], {type: 'text/csv;charset=utf-8;'});
+    let link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'Data_Lengkap_Pendataan.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    $("status").innerHTML = '<div class="status">✅ Data lengkap berhasil diexport ke Excel (CSV).</div>';
+}
+
+// ===== IMPORT EXCEL =====
+function importExcel(event){
+    let file = event.target.files[0];
+    if(!file){alert('Pilih file CSV terlebih dahulu.');return;}
+    
+    let reader = new FileReader();
+    reader.onload = function(e){
+        try{
+            let content = e.target.result;
+            let lines = content.split('\n').filter(line => line.trim() !== '');
+            if(lines.length < 2){alert('File kosong atau tidak valid.');return;}
+            
+            let section = '';
+            let petugasRaw = '', tujuanVal = '', tanggalAwalVal = '', tanggalAkhirVal = '', perihalVal = '', nomorSuratVal = '';
+            let kampungList = [], wilayahList = [];
+            let progressData = {}, photoData = {};
+            let importedCount = 0;
+            
+            for(let i = 0; i < lines.length; i++){
+                let line = lines[i].trim();
+                if(line.startsWith('=== DATA UTAMA ===')){section='utama';continue;}
+                else if(line.startsWith('=== KAMPUNG TUJUAN ===')){section='kampung';continue;}
+                else if(line.startsWith('=== WILAYAH TUGAS ===')){section='wilayah';continue;}
+                else if(line.startsWith('=== DATA PROGRES ===')){section='progres';continue;}
+                else if(line.startsWith('=== DOKUMENTASI ===')){section='dokumentasi';continue;}
+                
+                if(section === 'utama'){
+                    if(line.startsWith('Nama Petugas,')) petugasRaw = line.substring('Nama Petugas,'.length).trim();
+                    else if(line.startsWith('Tujuan,')) tujuanVal = line.substring('Tujuan,'.length).trim();
+                    else if(line.startsWith('Tanggal Awal,')) tanggalAwalVal = line.substring('Tanggal Awal,'.length).trim();
+                    else if(line.startsWith('Tanggal Akhir,')) tanggalAkhirVal = line.substring('Tanggal Akhir,'.length).trim();
+                    else if(line.startsWith('Perihal,')) perihalVal = line.substring('Perihal,'.length).trim();
+                    else if(line.startsWith('Nomor Surat Tugas,')) nomorSuratVal = line.substring('Nomor Surat Tugas,'.length).trim();
+                }
+                else if(section === 'kampung'){
+                    let parts = line.split(',').map(c => c.trim());
+                    if(parts.length >= 4 && parts[0] && !parts[0].includes('Kampung')){
+                        kampungList.push({kampung:parts[0],distrik:parts[1]||'',mengetahui:parts[2]||'',jabatan:parts[3]||''});
+                    }
+                }
+                else if(section === 'wilayah'){
+                    let parts = line.split(',').map(c => c.trim());
+                    if(parts.length >= 5 && parts[0] && !parts[0].includes('Kampung')){
+                        wilayahList.push({kampung:parts[0],sls:parts[1]||'',ppl:parts[2]||'',start:parseDate(parts[3])||'',end:parseDate(parts[4])||''});
+                    }
+                }
+                else if(section === 'progres'){
+                    let parts = line.split(',').map(c => c.trim());
+                    if(parts.length >= 10 && parts[0] && !parts[0].includes('Kampung')){
+                        let kampung=parts[0], tanggalStr=parts[1], sls=parts[2], ppl=parts[3];
+                        let dateObj = new Date(tanggalStr);
+                        if(isNaN(dateObj.getTime())){
+                            let parts2 = tanggalStr.split(' ');
+                            if(parts2.length === 3){
+                                let monthMap={'Januari':'01','Februari':'02','Maret':'03','April':'04','Mei':'05','Juni':'06','Juli':'07','Agustus':'08','September':'09','Oktober':'10','November':'11','Desember':'12'};
+                                let day=parts2[0].padStart(2,'0'), month=monthMap[parts2[1]]||'01', year=parts2[2];
+                                if(year.length===2) year='20'+year;
+                                tanggalStr=`${year}-${month}-${day}`;
+                            }
+                        } else {tanggalStr=dateObj.toISOString().split('T')[0];}
+                        
+                        if(!progressData[kampung]) progressData[kampung]={};
+                        if(!progressData[kampung][tanggalStr]) progressData[kampung][tanggalStr]={notes:"", items:{}};
+                        let key=sls+'||'+ppl;
+                        progressData[kampung][tanggalStr].items[key]={sls:sls,ppl:ppl,assignment:parts[4]||'0',bku:parts[5]||'0',keluarga:parts[6]||'0',bangunan:parts[7]||'0',usaha:parts[8]||'0',notes:parts[9]||''};
+                        importedCount++;
+                    }
+                }
+                else if(section === 'dokumentasi'){
+                    let parts = line.split(',').map(c => c.trim());
+                    if(parts.length >= 3 && parts[0] && !parts[0].includes('Kampung')){
+                        let kampung = parts[0];
+                        let src = parts[1] || '';
+                        let caption = parts[2] || '';
+                        if(src.startsWith('"') && src.endsWith('"')) src = src.slice(1,-1);
+                        if(!photoData[kampung]) photoData[kampung] = [];
+                        photoData[kampung].push({src:src, caption:caption});
+                    }
+                }
+            }
+            
+            let petugasList = petugasRaw ? petugasRaw.split(';').map(p=>p.trim()).filter(Boolean) : [''];
+            if(petugasList.length===0) petugasList = [''];
+            S.petugas = petugasList;
+            if(tujuanVal) S.tujuan = tujuanVal;
+            if(tanggalAwalVal) S.tanggalAwal = tanggalAwalVal;
+            if(tanggalAkhirVal) S.tanggalAkhir = tanggalAkhirVal;
+            if(perihalVal) S.perihal = perihalVal;
+            if(nomorSuratVal) S.nomorSurat = nomorSuratVal;
+            if(kampungList.length>0) S.kampung = kampungList;
+            if(wilayahList.length>0) S.wilayah = wilayahList;
+            if(Object.keys(progressData).length>0) S.p = progressData;
+            if(Object.keys(photoData).length>0) S.photos = photoData;
+            
+            renderPetugas();
+            document.getElementById('tujuan').value = S.tujuan || "";
+            
+            if(S.tanggalAwal){
+                let parts = S.tanggalAwal.split('-');
+                if(parts.length === 3){
+                    document.getElementById('tanggalAwal').value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                }
+            }
+            if(S.tanggalAkhir){
+                let parts = S.tanggalAkhir.split('-');
+                if(parts.length === 3){
+                    document.getElementById('tanggalAkhir').value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                }
+            }
+            
+            document.getElementById('perihal').value = S.perihal || "Pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026";
+            document.getElementById('nomorSurat').value = S.nomorSurat || "";
+            renderKampung();
+            renderWilayah();
+            if(Object.keys(S.p).length>0){$("progress").classList.remove("hidden");renderProgress();}
+            renderDokumentasi();
+            
+            let msg = `✅ Berhasil import data.`;
+            msg += `<br>👤 Petugas: ${S.petugas.length} orang`;
+            msg += `<br>🏠 Kampung: ${S.kampung.length}`;
+            msg += `<br>📋 Wilayah Tugas: ${S.wilayah.length}`;
+            msg += `<br>📊 Data Progres: ${importedCount} baris`;
+            let totalPhotos = 0;
+            Object.values(photoData).forEach(arr => totalPhotos += arr.length);
+            msg += `<br>📷 Dokumentasi: ${totalPhotos} gambar`;
+            $("status").innerHTML = `<div class="status">${msg}</div>`;
+            save();
+        } catch(err){alert('Error: '+err.message);console.error(err);}
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+// ===== INISIALISASI =====
+S.petugas = [''];
+renderPetugas();
+addKampung();
+addWilayah();
+renderKampung();
+renderWilayah();
+renderDokumentasi();
+</script>
+</body>
+</html>
