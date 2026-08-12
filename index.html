@@ -106,7 +106,7 @@ input,select,textarea{width:100%;padding:8px;border:1px solid #aaa;border-radius
 
 <div class="bar">Menu Buat Word</div>
 <div class="sec">
-<div class="row"><button class="btn primary" onclick="preview()">Preview Laporan</button><button class="btn success" onclick="word()">Download Word</button></div>
+<div class="row"><button class="btn primary" onclick="preview()">Preview Laporan</button><button class="btn success" id="btnDownloadWord">Download & Backup Word</button></div>
 <div id="preview" class="preview hidden"></div>
 </div>
 <footer>Semua data diproses di komputer/browser Anda.</footer>
@@ -125,16 +125,49 @@ const S={
     wilayah:[],
     p:{},
     photos:{},
-    v:0, // Indeks kampung untuk Progress
-    docV:0, // Indeks kampung untuk Dokumentasi
-    docMode:'kampung' // 'kampung' atau 'perahu'
+    wordBackupUrl:[],
+    v:0,
+    docV:0,
+    docMode:'kampung'
 };
 
 const $=id=>document.getElementById(id);
 const esc=x=>String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const dates=(a,b)=>{let r=[];if(!a||!b)return r;let d=new Date(a+"T00:00:00"),e=new Date(b+"T00:00:00");while(d<=e){r.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1)}return r};
 
-// ===== FUNGSI TANGGAL YANG SUDAH DIPERBAIKI =====
+// ===== KONFIGURASI CLOUDINARY =====
+const CLOUDINARY_CLOUD_NAME = "masukkan_cloud_name_anda_disini"; // GANTI INI
+const CLOUDINARY_UPLOAD_PRESET = "Laporan"; // Sesuai preset Anda
+
+// ===== FUNGSI UPLOAD KE CLOUDINARY =====
+function uploadFileToCloudinary(file, isImage, callback) {
+    let formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+    let endpoint = isImage 
+        ? `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload` 
+        : `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`;
+
+    fetch(endpoint, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if(data.secure_url) {
+            callback(data.secure_url, data.display_name || data.original_filename);
+        } else {
+            alert("Upload gagal: " + (data.error ? data.error.message : "Error tidak diketahui"));
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Error koneksi ke Cloudinary: " + err.message);
+    });
+}
+
+// ===== FUNGSI TANGGAL =====
 function fmt(x){
     if(!x) return "";
     let d = new Date(x + "T00:00:00");
@@ -512,7 +545,7 @@ function renderDokumentasi(){
     $("docContent").innerHTML = h;
 }
 
-// ===== RENDER DOKUMENTASI PERAHU (TAMBAHAN BARU) =====
+// ===== RENDER DOKUMENTASI PERAHU =====
 function renderDokumentasiPerahu(){
     let perahuPhotos = S.photos["Perahu"] || [];
     if(perahuPhotos.length === 0){
@@ -568,12 +601,12 @@ function removePhotoPerahu(index){
 function uploadPhotoPerahu(index, input){
     let file = input.files[0];
     if(!file) return;
-    let reader = new FileReader();
-    reader.onload = function(e){
-        S.photos["Perahu"][index].src = e.target.result;
+    $("status").innerHTML = '<div class="status">📤 Upload gambar perahu ke Cloudinary...</div>';
+    uploadFileToCloudinary(file, true, function(imageUrl) {
+        S.photos["Perahu"][index].src = imageUrl;
         renderDokumentasiPerahu();
-    };
-    reader.readAsDataURL(file);
+        $("status").innerHTML = '<div class="status">✅ Gambar perahu berhasil diupload!</div>';
+    });
 }
 
 function updateCaptionPerahu(index, value){
@@ -603,14 +636,14 @@ function removePhoto(index, photoIndex){
 function uploadPhoto(index, photoIndex, input){
     let file = input.files[0];
     if(!file) return;
-    let reader = new FileReader();
-    reader.onload = function(e){
+    $("status").innerHTML = '<div class="status">📤 Upload gambar ke Cloudinary...</div>';
+    uploadFileToCloudinary(file, true, function(imageUrl) {
         let vs = group();
         let v = vs[index];
-        S.photos[v.name][photoIndex].src = e.target.result;
+        S.photos[v.name][photoIndex].src = imageUrl;
         renderDokumentasi();
-    };
-    reader.readAsDataURL(file);
+        $("status").innerHTML = '<div class="status">✅ Gambar berhasil diupload!</div>';
+    });
 }
 
 function updateCaption(index, photoIndex, value){
@@ -690,22 +723,19 @@ function generateNarrativeTable(){
     return out;
 }
 
-// ===== PREVIEW & WORD =====
+// ===== PREVIEW & BACKUP WORD =====
 function generateWordHTML(resizedImages){
     let docHtml = '';
     let vs = group();
     
-    // Ambil data dari form
     let tujuan = esc(document.getElementById('tujuan').value.trim());
     let tanggalAwal = getDateFromInput(document.getElementById('tanggalAwal'));
     let tanggalAkhir = getDateFromInput(document.getElementById('tanggalAkhir'));
     let perihal = esc(document.getElementById('perihal').value.trim());
     let nomorSurat = esc(document.getElementById('nomorSurat').value.trim());
     
-    // Format tanggal range
     let tanggalDisplay = formatTanggalRange(tanggalAwal, tanggalAkhir);
     
-    // Daftar nama PPL (unique)
     let pplNames = [];
     S.wilayah.forEach(w => {
         if(w.ppl && w.ppl.trim() && !pplNames.includes(w.ppl.trim())){
@@ -716,7 +746,6 @@ function generateWordHTML(resizedImages){
         pplNames = S.petugas.filter(p => p.trim());
     }
     
-    // Buat table HTML
     docHtml += `<tr>
         <td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;">
             <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">LAPORAN PERJALANAN DINAS</p>
@@ -735,7 +764,6 @@ function generateWordHTML(resizedImages){
         <td style="border:1px solid #000;padding:8px;vertical-align:top;"></td>
     </tr>`;
     
-    // ===== TANDA TANGAN dengan space antar nomor =====
     docHtml += `<tr>
         <td style="border:1px solid #000;padding:8px;vertical-align:top;"><b>Perihal:</b> ${perihal}</td>
         <td style="border:1px solid #000;padding:8px;vertical-align:top;padding-top:20px;padding-bottom:20px;">
@@ -837,7 +865,6 @@ function generateWordHTML(resizedImages){
 
     let hasPerahu = perahuPhotos.some(p => p.src);
     if(hasPerahu){
-        // Page break sebelum dokumentasi perahu
         docHtml += `<div style="margin-top:0;margin-bottom:0;">`;
         docHtml += `<!--[if gte mso 9]>
         <br clear="all" style="mso-break-type:section-break;page-break-before:always;">
@@ -884,6 +911,7 @@ function preview(){
     $("preview").classList.remove("hidden");
 }
 
+// ===== FUNGSI DOWNLOAD & BACKUP WORD =====
 function word(){
     if(validate()){alert(validate());return}
     
@@ -911,150 +939,63 @@ function word(){
         }
     });
     
+    $("status").innerHTML = '<div class="status">⏳ Memproses laporan...</div>';
+    
     if(imagesToResize.length > 0){
         let resizedImages = {};
         let completed = 0;
         let total = imagesToResize.length;
         
         imagesToResize.forEach((src, idx) => {
-            resizeImageToHeight(src, 9, function(resizedSrc){
+            resizeImageToHeight(src, 9.2, function(resizedSrc){
                 let key = imageKeys[idx];
                 resizedImages[key] = resizedSrc;
                 completed++;
                 if(completed === total){
-                    generateWordDoc(resizedImages);
+                    uploadWordToCloudinary(resizedImages);
                 }
             });
         });
     } else {
-        generateWordDoc({});
+        uploadWordToCloudinary({});
     }
 }
 
-function generateWordDoc(resizedImages){
+function uploadWordToCloudinary(resizedImages){
     let htmlContent = generateWordHTML(resizedImages);
-    
-    let html = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" 
-      xmlns:w="urn:schemas-microsoft-com:office:word" 
-      xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="utf-8">
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<!--[if gte mso 9]>
-<xml>
-  <w:WordDocument>
-    <w:View>Print</w:View>
-    <w:Zoom>100</w:Zoom>
-    <w:DoNotOptimizeForBrowser/>
-  </w:WordDocument>
-</xml>
-<![endif]-->
-<style>
-    /* ===== PAGE SETUP A4 DENGAN MARGIN 2cm ===== */
-    @page {
-        size: 21cm 29.7cm;
-        margin-top: 2cm;
-        margin-right: 2cm;
-        margin-bottom: 2cm;
-        margin-left: 2cm;
-        mso-page-orientation: portrait;
-        mso-page-margin-top: 2cm;
-        mso-page-margin-right: 2cm;
-        mso-page-margin-bottom: 2cm;
-        mso-page-margin-left: 2cm;
-    }
-    
-    body { 
-        font-family: "Times New Roman", Times, serif; 
-        font-size: 12pt; 
-        line-height: 1.5;
-        mso-line-height-rule: exactly;
-    }
-    
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: "Times New Roman", Times, serif;
-        font-size: 12pt;
-    }
-    
-    td {
-        border: 1px solid #000000;
-        padding: 8px;
-        vertical-align: top;
-    }
-    
-    p { 
-        text-align: justify; 
-        margin: 0 0 6pt 0;
-        mso-para-margin-bottom: 6.0pt;
-    }
-    
-    ul {
-        margin-top: 3pt;
-        margin-bottom: 0pt;
-        padding-left: 20pt;
-    }
-    
-    li {
-        text-align: justify;
-        margin-bottom: 3pt;
-        mso-para-margin-bottom: 3.0pt;
-    }
-    
-    h3 {
-        text-align: center;
-        font-size: 12pt;
-        font-weight: bold;
-        margin-top: 18pt;
-        margin-bottom: 12pt;
-        mso-para-margin-top: 18.0pt;
-        mso-para-margin-bottom: 12.0pt;
-    }
-    
-    img {
-        height: 347pt;
-        width: auto;
-        max-width: 100%;
-        object-fit: contain;
-        border: 1px solid #cccccc;
-        border-radius: 4px;
-        display: block;
-        margin: 0 auto;
-        mso-height-rule: exactly;
-    }
-    
-    .ttd {
-        text-align: center;
-        padding-top: 60px;
-        padding-bottom: 20px;
-    }
-    .ttd p {
-        text-align: center;
-        margin: 0;
-        padding: 0;
-    }
-    .ttd .nama {
-        font-weight: bold;
-        text-decoration: underline;
-    }
+    let blob = new Blob(["\ufeff" + htmlContent], {type: "application/msword;charset=utf-8"});
 
-</style>
-</head>
-<body>
-${htmlContent}
-</body>
-</html>`;
+    let pplNames = [];
+    S.wilayah.forEach(w => { if(w.ppl && w.ppl.trim() && !pplNames.includes(w.ppl.trim())) pplNames.push(w.ppl.trim()); });
+    let namaPpl = pplNames.length > 0 ? pplNames[0] : "TanpaNama";
+    let tanggalSekarang = new Date().toLocaleDateString("id-ID", {day:"numeric", month:"short", year:"numeric"}).replace(/\s/g, "_");
+    let fileName = `Laporan_Perjalanan_Dinas_Tim_${namaPpl}_${tanggalSekarang}.doc`;
+
+    $("status").innerHTML = '<div class="status">⏳ Upload file Word ke Cloudinary...</div>';
     
-    let blob = new Blob(["\ufeff" + html], {type: "application/msword;charset=utf-8"});
-    let link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "Laporan_Pendataan.doc";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    uploadFileToCloudinary(blob, false, function(wordUrl) {
+        if(!S.wordBackupUrl) S.wordBackupUrl = [];
+        S.wordBackupUrl.push({
+            file: wordUrl,
+            date: new Date().toISOString(),
+            name: fileName,
+            createdBy: namaPpl
+        });
+
+        let link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+
+        $("status").innerHTML = `<div class="status" style="background:#d4edda; border-color:#28a745;">
+            ✅ Sukses! Laporan tersimpan di Cloudinary & di-download lokal.<br>
+            🔗 <a href="${wordUrl}" target="_blank">Lihat di Cloud</a>
+        </div>`;
+        save();
+    });
 }
 
 // ===== SAVE & LOAD =====
@@ -1062,12 +1003,8 @@ function save(){
     S.petugas = S.petugas.map(p => p.trim()).filter(Boolean);
     if(S.petugas.length === 0) S.petugas = [''];
     S.tujuan = document.getElementById('tujuan').value.trim();
-    
-    let tglAwalInput = document.getElementById('tanggalAwal').value.trim();
-    let tglAkhirInput = document.getElementById('tanggalAkhir').value.trim();
     S.tanggalAwal = getDateFromInput(document.getElementById('tanggalAwal'));
     S.tanggalAkhir = getDateFromInput(document.getElementById('tanggalAkhir'));
-    
     S.perihal = document.getElementById('perihal').value.trim();
     S.nomorSurat = document.getElementById('nomorSurat').value.trim();
     
@@ -1147,7 +1084,7 @@ function exportExcel(){
     rows.push('');
     
     rows.push('=== DOKUMENTASI ===');
-    rows.push('Kampung,Gambar (base64),Caption');
+    rows.push('Kampung,Cloudinary_URL_Gambar,Caption');
     vs.forEach(v => {
         let photos = S.photos[v.name] || [];
         photos.forEach(p => {
@@ -1161,6 +1098,13 @@ function exportExcel(){
         if(p.src){
             rows.push(`Perahu,"${p.src}",${p.caption||''}`);
         }
+    });
+    
+    rows.push('');
+    rows.push('=== BACKUP WORD ===');
+    rows.push('Nama_File,Cloudinary_Word_URL,Tanggal_Dibuat,Dibuat_oleh');
+    (S.wordBackupUrl || []).forEach(w => {
+        rows.push(`"${w.name}","${w.file}",${w.date || ''},${w.createdBy || ''}`);
     });
     
     let csvContent = rows.join('\n');
@@ -1189,6 +1133,7 @@ function importExcel(event){
             let petugasRaw = '', tujuanVal = '', tanggalAwalVal = '', tanggalAkhirVal = '', perihalVal = '', nomorSuratVal = '';
             let kampungList = [], wilayahList = [];
             let progressData = {}, photoData = {};
+            let wordBackupData = [];
             let importedCount = 0;
             
             for(let i = 0; i < lines.length; i++){
@@ -1198,6 +1143,7 @@ function importExcel(event){
                 else if(line.startsWith('=== WILAYAH TUGAS ===')){section='wilayah';continue;}
                 else if(line.startsWith('=== DATA PROGRES ===')){section='progres';continue;}
                 else if(line.startsWith('=== DOKUMENTASI ===')){section='dokumentasi';continue;}
+                else if(line.startsWith('=== BACKUP WORD ===')){section='backup';continue;}
                 
                 if(section === 'utama'){
                     if(line.startsWith('Nama Petugas,')) petugasRaw = line.substring('Nama Petugas,'.length).trim();
@@ -1252,6 +1198,17 @@ function importExcel(event){
                         photoData[kampung].push({src:src, caption:caption});
                     }
                 }
+                else if(section === 'backup'){
+                    let parts = line.split(',').map(c => c.trim());
+                    if(parts.length >= 4 && parts[0] && !parts[0].includes('Nama_File')){
+                        wordBackupData.push({
+                            name: parts[0].replace(/^"|"$/g, ''),
+                            file: parts[1].replace(/^"|"$/g, ''),
+                            date: parts[2] || '',
+                            createdBy: parts[3] || ''
+                        });
+                    }
+                }
             }
             
             let petugasList = petugasRaw ? petugasRaw.split(';').map(p=>p.trim()).filter(Boolean) : [''];
@@ -1266,6 +1223,7 @@ function importExcel(event){
             if(wilayahList.length>0) S.wilayah = wilayahList;
             if(Object.keys(progressData).length>0) S.p = progressData;
             if(Object.keys(photoData).length>0) S.photos = photoData;
+            if(wordBackupData.length>0) S.wordBackupUrl = wordBackupData;
             
             renderPetugas();
             document.getElementById('tujuan').value = S.tujuan || "";
@@ -1298,6 +1256,7 @@ function importExcel(event){
             let totalPhotos = 0;
             Object.values(photoData).forEach(arr => totalPhotos += arr.length);
             msg += `<br>📷 Dokumentasi: ${totalPhotos} gambar`;
+            msg += `<br>📄 Backup Word: ${wordBackupData.length} file`;
             $("status").innerHTML = `<div class="status">${msg}</div>`;
             save();
         } catch(err){alert('Error: '+err.message);console.error(err);}
@@ -1314,6 +1273,9 @@ addWilayah();
 renderKampung();
 renderWilayah();
 renderDokumentasi();
+
+// ===== BIND TOMBOL DOWNLOAD WORD =====
+document.getElementById('btnDownloadWord').addEventListener('click', word);
 </script>
 </body>
 </html>
