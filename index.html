@@ -18,6 +18,7 @@
     --shadow-main: 0 4px 20px rgba(0,0,0,0.04);
     --radius-md: 12px;
     --radius-sm: 8px;
+    --toolbar-height: 70px;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -25,40 +26,32 @@ body{
     background:var(--bg-body);
     font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
     color:var(--text-dark);
-    padding-bottom:40px
+    padding-bottom:40px;
+    padding-top:calc(var(--toolbar-height) + 30px); /* Ruang untuk sticky toolbar */
 }
-.wrap{max-width:1200px;margin:30px auto;padding:0 20px}
-/* HEADER */
-.app-header{
-    background:var(--primary-navy);
-    color:white;
-    padding:20px 30px;
-    border-radius:var(--radius-md);
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    flex-wrap:wrap;
-    gap:15px;
-    margin-bottom:30px;
-    box-shadow:0 8px 24px rgba(12,59,99,0.15)
+
+/* ===== STICKY TOOLBAR GLOBAL ===== */
+.global-toolbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: #ffffff;
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border-bottom: 2px solid var(--primary-navy);
+    min-height: var(--toolbar-height);
 }
-.app-header h1{font-size:22px;font-weight:600;letter-spacing:0.5px}
-.app-header small{font-weight:300;opacity:0.7;font-size:14px;display:block}
-/* GLOBAL TOOLBAR */
-.global-toolbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    flex-wrap:wrap;
-    gap:12px;
-    background:var(--bg-card);
-    padding:15px 20px;
-    border-radius:var(--radius-md);
-    box-shadow:var(--shadow-main);
-    border:1px solid #e2e8f0;
-    margin-bottom:30px
-}
-.toolbar-left,.toolbar-right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.toolbar-left, .toolbar-right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+
 /* BUTTONS */
 .btn{
     padding:10px 20px;
@@ -156,45 +149,38 @@ input:focus,select:focus,textarea:focus{
 }
 .preview{
     border:1px solid #d1d5db;padding:30px;font:12pt/1.6 "Times New Roman",serif;
-    background:#fff;border-radius:var(--radius-md);margin-top:20px
+    background:#fff;border-radius:var(--radius-md);margin-top:20px;display:none
 }
+.preview.visible{display:block}
 .preview p{text-align:justify}
 .hidden{display:none!important}
 footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:13px;border-top:1px solid #e2e8f0;padding-top:20px}
 @media(max-width:768px){
     .grid-2,.cols-5{grid-template-columns:1fr}
-    .global-toolbar{flex-direction:column;align-items:stretch}
+    .global-toolbar{flex-direction:column;align-items:stretch;padding:10px 15px;min-height:auto}
+    body{padding-top:160px}
     .toolbar-left,.toolbar-right{justify-content:center}
 }
 </style>
 </head>
 <body>
 
+<!-- STICKY TOOLBAR -->
+<div class="global-toolbar">
+    <div class="toolbar-left">
+        <span style="font-weight:700;color:var(--primary-navy);font-size:16px">📊 BPS Generator</span>
+        <button class="btn btn-success" onclick="exportExcel()">📥 Backup Laporan</button>
+        <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">📤 Restore Laporan</button>
+        <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importExcel(event)">
+        <button class="btn btn-danger" onclick="resetAll()">🗑 Hapus Semua</button>
+    </div>
+    <div class="toolbar-right">
+        <button class="btn btn-primary" onclick="preview()">👁 Preview Laporan</button>
+        <button class="btn btn-gold" onclick="word()">⬇ Download Word</button>
+    </div>
+</div>
+
 <div class="wrap">
-    <!-- HEADER -->
-    <div class="app-header">
-        <div>
-            <h1>📊 Generator Laporan Pendataan</h1>
-            <small>BPS Kabupaten Raja Ampat — Sensus Ekonomi 2026</small>
-        </div>
-        <div>
-            <button class="btn btn-danger" onclick="resetAll()">🗑 Hapus Semua</button>
-        </div>
-    </div>
-
-    <!-- GLOBAL TOOLBAR (Preview, Download, Backup, Restore) -->
-    <div class="global-toolbar">
-        <div class="toolbar-left">
-            <button class="btn btn-success" onclick="exportExcel()">📥 Backup Laporan</button>
-            <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">📤 Restore Laporan</button>
-            <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importExcel(event)">
-        </div>
-        <div class="toolbar-right">
-            <button class="btn btn-primary" onclick="preview()">👁 Preview Laporan</button>
-            <button class="btn btn-gold" onclick="word()">⬇ Download Word (Offline Ready)</button>
-        </div>
-    </div>
-
     <!-- SECTION 1: INPUT DATA -->
     <div class="section-card">
         <div class="section-title">📋 Data Surat Tugas & Petugas</div>
@@ -264,6 +250,9 @@ footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:13px;b
         <div id="docNav" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px"></div>
         <div id="docContent"></div>
     </div>
+
+    <!-- PREVIEW AREA -->
+    <div id="preview" class="preview"></div>
 
     <footer>© BPS Raja Ampat — Semua data diproses aman di peramban Anda.</footer>
 </div>
@@ -614,8 +603,16 @@ function renderProgress(){
     $("nav").innerHTML=vs.map((x,i)=>`<button class="pill ${i===S.v?"active":""}" onclick="S.v=${i};renderProgress()">${i+1}. ${esc(x.name)}</button>`).join("");
     let h=`<div class="card"><h3 style="margin:0">${esc(v.name)}</h3><small>Distrik ${esc(v.distrik)}</small></div>`;
     ds.forEach((d,i)=>{
-        let last=i===ds.length-1;
-        h+=`<div class="day ${last?"last":""}"><h4>${fmt(d)} ${last?" — HARI TERAKHIR KAMPUNG":""}</h4><div class="daybody">`;
+        let last = i === ds.length - 1;
+        let isLastKampung = S.v === vs.length - 1;
+        // Hanya tampilkan label "HARI TERAKHIR KAMPUNG" jika memang benar-benar hari terakhir untuk kampung tersebut
+        let labelLast = "";
+        if (last && !isLastKampung) {
+            labelLast = " — HARI TERAKHIR KAMPUNG (SEBELUM PINDAH)";
+        } else if (last && isLastKampung) {
+            labelLast = " — HARI TERAKHIR KAMPUNG (PENUTUPAN)";
+        }
+        h+=`<div class="day ${last?"last":""}"><h4>${fmt(d)}${labelLast}</h4><div class="daybody">`;
         v.items.filter(w=>d>=w.start&&d<=w.end).forEach(w=>{
             let k=w.sls+"||"+w.ppl;
             let x=S.p[v.name][d].items[k];
@@ -1025,8 +1022,9 @@ function generateWordHTML(resizedImages){
         
         docHtml += `<tr>
             <td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;">
-                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">SPJ TRANSPORTASI</p>
-                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">   </p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">DOKUMENTASI PERJALANAN DINAS PELAKSANAAN LAPANGAN</p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">SENSUS EKONOMI 2026</p>
+                <p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin-top:0;margin-bottom:0;padding:0;line-height:1.2;">DOKUMENTASI PERAHU</p>
             </td>
         </tr>`;
         
@@ -1057,10 +1055,17 @@ function generateWordHTML(resizedImages){
 
 function preview(){
     if(validate()){alert(validate());return}
-    $("preview").innerHTML = generateWordHTML(null);
-    $("preview").classList.remove("hidden");
+    let previewDiv = document.getElementById('preview');
+    previewDiv.innerHTML = generateWordHTML(null);
+    previewDiv.classList.add('visible');
+    
+    // Scroll otomatis ke preview
+    setTimeout(() => {
+        previewDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
 }
 
+// ===== FUNGSI DOWNLOAD WORD (OFFLINE READY + BACKUP KE CLOUDINARY) =====
 function word(){
     if(validate()){alert(validate());return}
     
@@ -1089,7 +1094,8 @@ function word(){
     });
     
     if(imagesToResize.length === 0){
-        generateWordDoc({});
+        // Tidak ada gambar, langsung buat word tanpa resize
+        generateOfflineWordAndBackup({});
         return;
     }
     
@@ -1098,7 +1104,6 @@ function word(){
     let resizedImages = {};
     let completed = 0;
     let total = imagesToResize.length;
-    let failed = 0;
     
     imagesToResize.forEach((src, idx) => {
         fetch(src)
@@ -1112,7 +1117,7 @@ function word(){
                 let base64Data = reader.result;
                 let key = imageKeys[idx];
                 
-                resizeImageToHeight(base64Data, 9, function(resizedSrc){
+                resizeImageToHeight(base64Data, 9.2, function(resizedSrc){
                     resizedImages[key] = resizedSrc;
                     completed++;
                     checkComplete();
@@ -1122,7 +1127,6 @@ function word(){
         })
         .catch(err => {
             console.warn("Gagal download gambar: ", src);
-            failed++;
             completed++;
             checkComplete();
         });
@@ -1130,12 +1134,53 @@ function word(){
     
     function checkComplete(){
         if(completed === total){
-            $("status").innerHTML = '<div class="status">⏳ Membuat file Word...</div>';
+            $("status").innerHTML = '<div class="status">⏳ Membuat file Word & Backup ke Cloudinary...</div>';
             setTimeout(() => {
-                generateWordDoc(resizedImages);
+                generateOfflineWordAndBackup(resizedImages);
             }, 500);
         }
     }
+}
+
+// ===== GENERATE WORD + UPLOAD KE CLOUDINARY =====
+function generateOfflineWordAndBackup(resizedImages){
+    let htmlContent = generateWordHTML(resizedImages);
+    let blob = new Blob(["\ufeff" + htmlContent], {type: "application/msword;charset=utf-8"});
+
+    // Format nama file
+    let pplNames = [];
+    S.wilayah.forEach(w => { if(w.ppl && w.ppl.trim() && !pplNames.includes(w.ppl.trim())) pplNames.push(w.ppl.trim()); });
+    let namaPpl = pplNames.length > 0 ? pplNames[0] : "TanpaNama";
+    let tanggalSekarang = new Date().toLocaleDateString("id-ID", {day:"numeric", month:"short", year:"numeric"}).replace(/\s/g, "_");
+    let fileName = `Laporan_Perjalanan_Dinas_Tim_${namaPpl}_${tanggalSekarang}.doc`;
+
+    // STEP 1: Download Offline ke lokal user terlebih dahulu
+    let link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+
+    // STEP 2: Upload backup ke Cloudinary
+    $("status").innerHTML = '<div class="status">⏳ Mengupload backup Word ke Cloudinary...</div>';
+    
+    uploadFileToCloudinary(blob, false, function(wordUrl) {
+        if(!S.wordBackupUrl) S.wordBackupUrl = [];
+        S.wordBackupUrl.push({
+            file: wordUrl,
+            date: new Date().toISOString(),
+            name: fileName,
+            createdBy: namaPpl
+        });
+
+        $("status").innerHTML = `<div class="status" style="background:#d4edda; border-color:#28a745;">
+            ✅ File Word berhasil didownload & di-backup ke Cloudinary!<br>
+            🔗 <a href="${wordUrl}" target="_blank">Lihat Backup di Cloud</a>
+        </div>`;
+        save();
+    });
 }
 
 function generateWordDoc(resizedImages){
@@ -1257,13 +1302,13 @@ ${htmlContent}
     let blob = new Blob(["\ufeff" + html], {type: "application/msword;charset=utf-8"});
     let link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "Laporan_Pendataan_OfflineReady.doc";
+    link.download = "Laporan_Pendataan.doc";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     
-    $("status").innerHTML = '<div class="status" style="background:#d4edda; border-color:#28a745;">✅ File Word dengan gambar embedded berhasil didownload! (Bisa dibuka offline)</div>';
+    $("status").innerHTML = '<div class="status" style="background:#d4edda; border-color:#28a745;">✅ File Word berhasil didownload!</div>';
 }
 
 // ===== SAVE & LOAD (INTERNAL BROWSER) =====
@@ -1369,11 +1414,16 @@ function exportExcel(){
     });
     
     rows.push('');
+    rows.push('');
     rows.push('=== BACKUP WORD ===');
     rows.push('Nama_File,Cloudinary_Word_URL,Tanggal_Dibuat,Dibuat_oleh');
-    (S.wordBackupUrl || []).forEach(w => {
-        rows.push(`"${w.name}","${w.file}",${w.date || ''},${w.createdBy || ''}`);
-    });
+    if(S.wordBackupUrl && S.wordBackupUrl.length > 0) {
+        (S.wordBackupUrl || []).forEach(w => {
+            rows.push(`"${w.name}","${w.file}",${w.date || ''},${w.createdBy || ''}`);
+        });
+    } else {
+        rows.push('"Belum ada backup","","",""');
+    }
     
     let csvContent = rows.join('\n');
     let blob = new Blob(['\ufeff' + csvContent], {type: 'text/csv;charset=utf-8;'});
