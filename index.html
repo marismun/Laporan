@@ -201,6 +201,8 @@ footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:12px;b
         <button class="btn btn-success" onclick="exportExcel()">📥 Backup</button>
         <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">📤 Restore</button>
         <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="importExcel(event)">
+        <!-- TOMBOL MUAT DATA DARI BROWSER -->
+        <button class="btn btn-primary" onclick="load()">📂 Muat</button>
         <button class="btn btn-danger" onclick="resetAll()">🗑 Hapus</button>
     </div>
     <div class="toolbar-right">
@@ -308,32 +310,22 @@ const S={
 const $=id=>document.getElementById(id);
 const esc=x=>String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 
-// ===== FUNGSI TANGGAL (dd/mm/yyyy) =====
+// ===== FUNGSI TANGGAL (LOGIKA BARU DENGAN DATE OBJECT) =====
 const dates=(startStr, endStr)=>{
-    let r=[];
-    if(!startStr || !endStr) return r;
-    function parseDMY(s){
-        let p=s.split('/');
-        return {d:parseInt(p[0]), m:parseInt(p[1]), y:parseInt(p[2])};
-    }
-    function toStr(d){
-        return `${String(d.d).padStart(2,'0')}/${String(d.m).padStart(2,'0')}/${d.y}`;
-    }
-    let start=parseDMY(startStr);
-    let end=parseDMY(endStr);
-    let cur={...start};
-    while(cur.y < end.y || (cur.y === end.y && cur.m < end.m) || (cur.y === end.y && cur.m === end.m && cur.d <= end.d)){
-        r.push(toStr(cur));
-        let daysInMonth = new Date(cur.y, cur.m, 0).getDate();
-        cur.d++;
-        if(cur.d > daysInMonth){
-            cur.d = 1;
-            cur.m++;
-            if(cur.m > 12){
-                cur.m = 1;
-                cur.y++;
-            }
-        }
+    if(!startStr || !endStr) return [];
+    let partsA = startStr.split('/');
+    let partsB = endStr.split('/');
+    let start = new Date(parseInt(partsA[2]), parseInt(partsA[1])-1, parseInt(partsA[0]));
+    let end = new Date(parseInt(partsB[2]), parseInt(partsB[1])-1, parseInt(partsB[0]));
+    if(isNaN(start.getTime()) || isNaN(end.getTime())) return [];
+    let r = [];
+    let cur = new Date(start);
+    while(cur <= end){
+        let d = String(cur.getDate()).padStart(2,'0');
+        let m = String(cur.getMonth()+1).padStart(2,'0');
+        let y = cur.getFullYear();
+        r.push(`${d}/${m}/${y}`);
+        cur.setDate(cur.getDate() + 1);
     }
     return r;
 };
@@ -402,12 +394,9 @@ function getDateFromInput(input){
 
 function formatTanggalRange(tglAwal, tglAkhir){
     if(!tglAwal || !tglAkhir) return '';
-    let partsAwal = tglAwal.split('/');
-    let partsAkhir = tglAkhir.split('/');
-    if(partsAwal.length !== 3 || partsAkhir.length !== 3) return '';
-    
-    let dAwal = new Date(parseInt(partsAwal[2]), parseInt(partsAwal[1])-1, parseInt(partsAwal[0]));
-    let dAkhir = new Date(parseInt(partsAkhir[2]), parseInt(partsAkhir[1])-1, parseInt(partsAkhir[0]));
+    let pa = tglAwal.split('/'), pb = tglAkhir.split('/');
+    let dAwal = new Date(parseInt(pa[2]), parseInt(pa[1])-1, parseInt(pa[0]));
+    let dAkhir = new Date(parseInt(pb[2]), parseInt(pb[1])-1, parseInt(pb[0]));
     if(isNaN(dAwal.getTime()) || isNaN(dAkhir.getTime())) return '';
     
     let hariAwal = dAwal.getDate();
@@ -624,12 +613,20 @@ function group(){
         }
         m.get(w.kampung).items.push(w);
     });
-    // Ambil semua kampung, lalu urutkan berdasarkan tanggal start terkecil
     let result = [...m.values()];
     result.sort((a,b)=>{
-        // Cari tanggal start terkecil di masing-masing kampung
-        let aStart = a.items.map(w=>w.start).sort()[0];
-        let bStart = b.items.map(w=>w.start).sort()[0];
+        let aStart = a.items.map(w=>w.start).sort((x,y)=> {
+            let px = x.split('/'), py = y.split('/');
+            let dx = new Date(px[2], px[1]-1, px[0]);
+            let dy = new Date(py[2], py[1]-1, py[0]);
+            return dx - dy;
+        })[0];
+        let bStart = b.items.map(w=>w.start).sort((x,y)=> {
+            let px = x.split('/'), py = y.split('/');
+            let dx = new Date(px[2], px[1]-1, px[0]);
+            let dy = new Date(py[2], py[1]-1, py[0]);
+            return dx - dy;
+        })[0];
         let pa = aStart.split('/'), pb = bStart.split('/');
         let da = new Date(pa[2], pa[1]-1, pa[0]);
         let db = new Date(pb[2], pb[1]-1, pb[0]);
@@ -637,7 +634,7 @@ function group(){
     });
     return result;
 }
-    
+
 function validate(){
     let petugasNama = S.petugas.filter(p => p.trim()).join(', ');
     S.tujuan = document.getElementById('tujuan').value.trim();
@@ -652,11 +649,18 @@ function validate(){
     if(!S.nomorSurat) return "Nomor Surat Tugas belum diisi.";
     if(!S.kampung.length) return "Tambahkan kampung.";
     if(!S.wilayah.length) return "Tambahkan wilayah tugas.";
-    for(let i=0;i<S.wilayah.length;i++){let w=S.wilayah[i];if(!w.kampung||!w.sls||!w.ppl||!w.start||!w.end)return`Wilayah Tugas ${i+1} belum lengkap.`;if(w.start>w.end)return`Tanggal Wilayah Tugas ${i+1} salah.`}
+    for(let i=0;i<S.wilayah.length;i++){
+        let w=S.wilayah[i];
+        if(!w.kampung||!w.sls||!w.ppl||!w.start||!w.end) return `Wilayah Tugas ${i+1} belum lengkap.`;
+        let pa = w.start.split('/'), pb = w.end.split('/');
+        let startDate = new Date(parseInt(pa[2]), parseInt(pa[1])-1, parseInt(pa[0]));
+        let endDate = new Date(parseInt(pb[2]), parseInt(pb[1])-1, parseInt(pb[0]));
+        if(startDate > endDate) return `Tanggal Wilayah Tugas ${i+1} salah.`;
+    }
     return "";
 }
 
-// ===== GENERATE (FINAL CLEAN - HARI PERTAMA KAMPUNG 1 KOSONG) =====
+// ===== GENERATE =====
 function generate(){
     let e=validate();
     if(e){$("status").innerHTML=`<div class="status err">${esc(e)}</div>`;return}
@@ -672,66 +676,92 @@ function generate(){
     // Reset data progres
     S.p = {};
     
+    // Kumpulkan SEMUA tanggal dari semua kampung
+    let allDates = [];
     vs.forEach(v=>{
-        S.p[v.name] = {};
-        
-        // Ambil daftar tanggal unik per kampung, urutkan kronologis
-        let rawDates = v.items.flatMap(w=>dates(w.start,w.end));
-        let uniqueDates = [...new Set(rawDates)];
-        let ds = uniqueDates.sort((a,b) => {
-            let pa = a.split('/'), pb = b.split('/');
-            let da = new Date(pa[2], pa[1]-1, pa[0]);
-            let db = new Date(pb[2], pb[1]-1, pb[0]);
-            return da - db;
+        v.items.forEach(w=>{
+            let days = dates(w.start, w.end);
+            days.forEach(d=>{
+                if(!allDates.includes(d)) allDates.push(d);
+            });
         });
-        
-        // Loop setiap tanggal
-        ds.forEach((d, idx)=>{
-            let isFirstDayOfFirstKampung = (v.name === vs[0].name && idx === 0);
-            
-            // HARI PERTAMA KAMPUNG PERTAMA: JANGAN BUAT ITEMS SAMA SEKALI
-            if (isFirstDayOfFirstKampung) {
-                // S.p[v.name][d] tetap ada tapi kosong (tidak ada items)
-                S.p[v.name][d] = {};
-                return;
-            }
-            
-            // Hari-hari lainnya: buat items
-            S.p[v.name][d] = {notes:"", items:{}};
-            v.items.filter(w=>d>=w.start&&d<=w.end).forEach(w=>{
-                let k=w.sls+"||"+w.ppl;
-                let days = dates(w.start, w.end).length;
-                if(days === 0) days = 1;
+    });
+    
+    // Urutkan semua tanggal secara kronologis
+    let globalSortedDates = allDates.sort((a,b) => {
+        let pa = a.split('/'), pb = b.split('/');
+        let da = new Date(pa[2], pa[1]-1, pa[0]);
+        let db = new Date(pb[2], pb[1]-1, pb[0]);
+        return da - db;
+    });
+    
+    // Loop setiap tanggal secara global
+    globalSortedDates.forEach((d, idx)=>{
+        // Cari kampung mana yang memiliki tanggal ini
+        vs.forEach(v=>{
+            let hasItem = v.items.some(w=>d>=w.start&&d<=w.end);
+            if(hasItem){
+                if(!S.p[v.name]) S.p[v.name] = {};
+                let isFirstDayOfFirstKampung = (v.name === vs[0].name && idx === 0);
                 
-                let assignVal = 0, bkuVal = 0, keluargaVal = 0, bangunanVal = 0, usahaVal = 0;
-                
-                // Jika ini hari terakhir di kampung ini (porsi kecil 10%)
-                if (d === ds[ds.length - 1]) {
-                    assignVal = Math.floor((w.assignmentTotal || 0) / days * 0.1);
-                    bkuVal = Math.floor((w.bkuTotal || 0) / days * 0.1);
-                    keluargaVal = Math.floor((w.keluargaTotal || 0) / days * 0.1);
-                    bangunanVal = Math.floor((w.bangunanTotal || 0) / days * 0.1);
-                    usahaVal = Math.floor((w.usahaTotal || 0) / days * 0.1);
-                } else {
-                    // Rata-rata normal
-                    assignVal = Math.round((w.assignmentTotal || 0) / days);
-                    bkuVal = Math.round((w.bkuTotal || 0) / days);
-                    keluargaVal = Math.round((w.keluargaTotal || 0) / days);
-                    bangunanVal = Math.round((w.bangunanTotal || 0) / days);
-                    usahaVal = Math.round((w.usahaTotal || 0) / days);
+                // HARI PERTAMA KAMPUNG PERTAMA: JANGAN BUAT ITEMS
+                if (isFirstDayOfFirstKampung) {
+                    S.p[v.name][d] = {};
+                    return;
                 }
                 
-                S.p[v.name][d].items[k] = {
-                    sls:w.sls,
-                    ppl:w.ppl,
-                    assignment: assignVal,
-                    bku: bkuVal,
-                    keluarga: keluargaVal,
-                    bangunan: bangunanVal,
-                    usaha: usahaVal,
-                    notes: ""
-                };
-            });
+                // Hari-hari lainnya: buat items
+                if(!S.p[v.name][d]) S.p[v.name][d] = {notes:"", items:{}};
+                v.items.filter(w=>d>=w.start&&d<=w.end).forEach(w=>{
+                    let k=w.sls+"||"+w.ppl;
+                    let days = dates(w.start, w.end).length;
+                    if(days === 0) days = 1;
+                    
+                    let assignVal = 0, bkuVal = 0, keluargaVal = 0, bangunanVal = 0, usahaVal = 0;
+                    
+                    // Jika ini hari terakhir di kampung ini (porsi kecil 10%)
+                    if (d === globalSortedDates.filter(dd=>vs.some(vv=>vv.items.some(w=>dd>=w.start&&dd<=w.end))).slice(-1)[0]) {
+                        // Cek apakah ini hari terakhir dari kampung ini
+                        let kampungDates = vs.filter(vv=>vv.name===v.name).flatMap(vv=>vv.items.flatMap(w=>dates(w.start,w.end)));
+                        let uniqueKampungDates = [...new Set(kampungDates)].sort((a,b)=>{
+                            let pa = a.split('/'), pb = b.split('/');
+                            let da = new Date(pa[2], pa[1]-1, pa[0]);
+                            let db = new Date(pb[2], pb[1]-1, pb[0]);
+                            return da - db;
+                        });
+                        if (d === uniqueKampungDates[uniqueKampungDates.length-1]) {
+                            assignVal = Math.floor((w.assignmentTotal || 0) / days * 0.1);
+                            bkuVal = Math.floor((w.bkuTotal || 0) / days * 0.1);
+                            keluargaVal = Math.floor((w.keluargaTotal || 0) / days * 0.1);
+                            bangunanVal = Math.floor((w.bangunanTotal || 0) / days * 0.1);
+                            usahaVal = Math.floor((w.usahaTotal || 0) / days * 0.1);
+                        } else {
+                            assignVal = Math.round((w.assignmentTotal || 0) / days);
+                            bkuVal = Math.round((w.bkuTotal || 0) / days);
+                            keluargaVal = Math.round((w.keluargaTotal || 0) / days);
+                            bangunanVal = Math.round((w.bangunanTotal || 0) / days);
+                            usahaVal = Math.round((w.usahaTotal || 0) / days);
+                        }
+                    } else {
+                        assignVal = Math.round((w.assignmentTotal || 0) / days);
+                        bkuVal = Math.round((w.bkuTotal || 0) / days);
+                        keluargaVal = Math.round((w.keluargaTotal || 0) / days);
+                        bangunanVal = Math.round((w.bangunanTotal || 0) / days);
+                        usahaVal = Math.round((w.usahaTotal || 0) / days);
+                    }
+                    
+                    S.p[v.name][d].items[k] = {
+                        sls:w.sls,
+                        ppl:w.ppl,
+                        assignment: assignVal,
+                        bku: bkuVal,
+                        keluarga: keluargaVal,
+                        bangunan: bangunanVal,
+                        usaha: usahaVal,
+                        notes: ""
+                    };
+                });
+            }
         });
     });
     
@@ -768,11 +798,8 @@ function renderProgress(){
         }
         h+=`<div class="day ${last?"last":""}"><h4>${fmt(d)}${labelLast}</h4><div class="daybody">`;
         
-        // CEK APAKAH ADA ITEMS PADA TANGGAL INI
         let items = S.p[v.name][d].items;
-        
         if (items && Object.keys(items).length > 0) {
-            // Hari-hari dengan data progres: Tampilkan form progres
             v.items.filter(w=>d>=w.start&&d<=w.end).forEach(w=>{
                 let k=w.sls+"||"+w.ppl;
                 let x=items[k];
@@ -787,9 +814,6 @@ function renderProgress(){
                     <div style="margin-top:7px"><input placeholder="Catatan SLS" value="${esc(x.notes)}" onchange="setVal('${esc(v.name)}','${d}','${esc(k)}','notes',this.value)"></div></div>`;
                 }
             });
-        } else {
-            // Hari tanpa items (hari pertama kampung pertama): KOSONG TOTAL
-            // Tidak menampilkan apapun
         }
         
         h+=`</div></div>`;
@@ -975,101 +999,131 @@ function generateNarrativeTable(){
     let vs = group();
     let totalKampung = vs.length;
     
-    vs.forEach((v, vi) => {
+    // Kumpulkan semua tanggal dari semua kampung dan urutkan secara global
+    let allDates = [];
+    vs.forEach(v=>{
+        v.items.forEach(w=>{
+            let days = dates(w.start, w.end);
+            days.forEach(d=>{
+                if(!allDates.includes(d)) allDates.push(d);
+            });
+        });
+    });
+    let globalSortedDates = allDates.sort((a,b) => {
+        let pa = a.split('/'), pb = b.split('/');
+        let da = new Date(pa[2], pa[1]-1, pa[0]);
+        let db = new Date(pb[2], pb[1]-1, pb[0]);
+        return da - db;
+    });
+    
+    // Loop setiap tanggal global
+    globalSortedDates.forEach((d, idx)=>{
+        // Cari kampung mana yang aktif pada tanggal ini
+        let activeKampung = null;
+        let activeIndex = -1;
+        vs.forEach((v, vi)=>{
+            if(v.items.some(w=>d>=w.start&&d<=w.end)){
+                activeKampung = v;
+                activeIndex = vi;
+            }
+        });
+        if(!activeKampung) return;
+        
+        let v = activeKampung;
+        let vi = activeIndex;
         let aparatData = S.kampung.find(k => k.kampung === v.name);
         let namaAparat = aparatData && aparatData.mengetahui ? aparatData.mengetahui : "Kepala Kampung";
         let jabatanAparat = aparatData && aparatData.jabatan ? aparatData.jabatan : "Kepala Kampung";
         
-        // Ambil daftar hari, urutkan secara kronologis berdasarkan tanggal (dd/mm/yyyy)
-        let ds = Object.keys(S.p[v.name]||{}).sort((a,b) => {
+        // Ambil daftar hari untuk kampung ini
+        let kampungDates = vs.filter(vv=>vv.name===v.name).flatMap(vv=>vv.items.flatMap(w=>dates(w.start,w.end)));
+        let uniqueKampungDates = [...new Set(kampungDates)].sort((a,b) => {
             let pa = a.split('/'), pb = b.split('/');
             let da = new Date(pa[2], pa[1]-1, pa[0]);
             let db = new Date(pb[2], pb[1]-1, pb[0]);
             return da - db;
         });
+        let di = uniqueKampungDates.indexOf(d);
+        let isFirstDayInKampung = (di === 0);
+        let isLastDayInKampung = (di === uniqueKampungDates.length - 1);
+        let isLastKampung = (vi === totalKampung - 1);
+        let isFinalDay = isLastKampung && isLastDayInKampung;
+        let isFirstDayOfFirstKampung = (vi === 0 && isFirstDayInKampung);
         
-        ds.forEach((d, di) => {
-            let isFirstDayInKampung = (di === 0);
-            let isLastDayInKampung = (di === ds.length - 1);
-            let isLastKampung = (vi === totalKampung - 1);
-            let isFinalDay = isLastKampung && isLastDayInKampung;
-            let isFirstDayOfFirstKampung = (vi === 0 && isFirstDayInKampung);
-            
-            // Tanggal akan muncul di sini (hanya 1x per hari)
-            out += `<p style="margin-top:12pt;margin-bottom:0pt;text-align:justify;"><b>${fmt(d)}</b></p>`;
-            out += `<ul style="margin-top:3pt;margin-bottom:0pt;padding-left:20pt;text-align:justify;">`;
-            
-            // ============================================================
-            // NARASI HARI PERTAMA KAMPUNG 1 (Hanya Narasi, Tidak Ada Progres)
-            // ============================================================
-            if (isFirstDayOfFirstKampung) {
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim berangkat dari Waisai menuju ${esc(v.name)}, Distrik ${esc(v.distrik)}, menggunakan transportasi perahu motor. Tim tiba di kampung tujuan dan mempersiapkan pelaksanaan pendataan lapangan.</li>`;
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim menemui Bapak ${esc(namaAparat)} selaku ${esc(jabatanAparat)} ${esc(v.name)}.</li>`;
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim meminta visum Surat Tugas serta menyampaikan maksud dan tujuan pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026 kepada aparat kampung.</li>`;
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Setelah memperoleh izin, masing-masing petugas menuju wilayah tugas untuk melakukan penelusuran wilayah.</li>`;
-                // TIDAK ADA PROGRES DI SINI
+        // Tanggal akan muncul di sini (hanya 1x per hari)
+        out += `<p style="margin-top:12pt;margin-bottom:0pt;text-align:justify;"><b>${fmt(d)}</b></p>`;
+        out += `<ul style="margin-top:3pt;margin-bottom:0pt;padding-left:20pt;text-align:justify;">`;
+        
+        // ============================================================
+        // NARASI HARI PERTAMA KAMPUNG 1 (Hanya Narasi, Tidak Ada Progres)
+        // ============================================================
+        if (isFirstDayOfFirstKampung) {
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Tim berangkat dari Waisai menuju ${esc(v.name)}, Distrik ${esc(v.distrik)}, menggunakan transportasi perahu motor. Tim tiba di kampung tujuan dan mempersiapkan pelaksanaan pendataan lapangan.</li>`;
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Tim menemui Bapak ${esc(namaAparat)} selaku ${esc(jabatanAparat)} ${esc(v.name)}.</li>`;
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Tim meminta visum Surat Tugas serta menyampaikan maksud dan tujuan pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026 kepada aparat kampung.</li>`;
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Setelah memperoleh izin, masing-masing petugas menuju wilayah tugas untuk melakukan penelusuran wilayah.</li>`;
+            // TIDAK ADA PROGRES DI SINI
+        }
+        
+        // ============================================================
+        // NARASI HARI PERTAMA KAMPUNG 2, 3, dst.
+        // ============================================================
+        else if (vi > 0 && isFirstDayInKampung) {
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Tim melakukan check assignment kampung sebelumnya (${esc(vs[vi-1].name)}) dan mempersiapkan keberangkatan menuju ${esc(v.name)}, Distrik ${esc(v.distrik)}.</li>`;
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Tim melakukan perjalanan dari ${esc(vs[vi-1].name)} menuju ${esc(v.name)}. Setelah tiba, tim melakukan koordinasi dengan aparat kampung untuk izin dan persiapan pelaksanaan pendataan.</li>`;
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Tim menemui Bapak ${esc(namaAparat)} selaku ${esc(jabatanAparat)} ${esc(v.name)}.</li>`;
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Tim meminta visum Surat Tugas serta menyampaikan maksud dan tujuan pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026 kepada aparat kampung.</li>`;
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Setelah memperoleh izin, masing-masing petugas menuju wilayah tugas untuk melakukan penelusuran wilayah.</li>`;
+        }
+        
+        // ============================================================
+        // NARASI HARI KEDUA SAMPAI HARI TERAKHIR KAMPUNG
+        // ============================================================
+        else {
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Tim melanjutkan kegiatan pendataan door to door pada wilayah tugas masing-masing.</li>`;
+        }
+        
+        // ============================================================
+        // DATA PROGRES PER PPL (HANYA MUNCUL JIKA BUKAN HARI PERTAMA KAMPUNG 1)
+        // DAN HANYA JIKA ADA ITEMS
+        // ============================================================
+        if (!isFirstDayOfFirstKampung) {
+            let items = S.p[v.name][d].items;
+            if (items && Object.keys(items).length > 0) {
+                Object.values(items).forEach(x => {
+                    let a = +x.assignment || 0, b = +x.bku || 0, k = +x.keluarga || 0, bl = +x.bangunan || 0, u = +x.usaha || 0;
+                    if (!a && !b && !k && !bl && !u && !x.notes) {
+                        out += `<li style="text-align:justify;margin-bottom:3pt;">PPL ${esc(x.ppl)} melakukan pendataan di SLS ${esc(x.sls)} dan tidak ada data yang berhasil didata pada hari ini.</li>`;
+                        return;
+                    }
+                    let r = [];
+                    if (b) r.push(`${b} BKU`);
+                    if (k) r.push(`${k} Keluarga`);
+                    if (bl) r.push(`${bl} Bangunan Lainnya`);
+                    let detail = r.length ? `, dengan rincian ${r.join(", ")}.` : ".";
+                    out += `<li style="text-align:justify;margin-bottom:3pt;">PPL ${esc(x.ppl)} melakukan pendataan di SLS ${esc(x.sls)} dan berhasil mendata serta submit sebanyak <b>${a}</b> assignment${detail} Total usaha yang ditemukan sebanyak <b>${u}</b> usaha.${x.notes ? " " + esc(x.notes) : ""}</li>`;
+                });
             }
+        }
+        
+        // ============================================================
+        // NARASI PENUTUPAN KAMPUNG TERAKHIR
+        // ============================================================
+        if (isFinalDay) {
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Tim melakukan check assignment dan memastikan isian kampung terakhir (${esc(v.name)}) sebelum kembali ke Waisai.</li>`;
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Petugas melakukan pengecekan administrasi dan kelengkapan hasil pendataan sebagai tahap akhir kegiatan lapangan.</li>`;
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Setelah seluruh hasil pendataan dinyatakan lengkap, tim mempersiapkan keberangkatan kembali menuju Waisai.</li>`;
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Tim meninggalkan Kampung ${esc(v.name)} dan melakukan perjalanan kembali ke Waisai.</li>`;
             
-            // ============================================================
-            // NARASI HARI PERTAMA KAMPUNG 2, 3, dst.
-            // ============================================================
-            else if (vi > 0 && isFirstDayInKampung) {
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim melakukan check assignment kampung sebelumnya (${esc(vs[vi-1].name)}) dan mempersiapkan keberangkatan menuju ${esc(v.name)}, Distrik ${esc(v.distrik)}.</li>`;
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim melakukan perjalanan dari ${esc(vs[vi-1].name)} menuju ${esc(v.name)}. Setelah tiba, tim melakukan koordinasi dengan aparat kampung untuk izin dan persiapan pelaksanaan pendataan.</li>`;
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim menemui Bapak ${esc(namaAparat)} selaku ${esc(jabatanAparat)} ${esc(v.name)}.</li>`;
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim meminta visum Surat Tugas serta menyampaikan maksud dan tujuan pelaksanaan Pendataan Lapangan Sensus Ekonomi 2026 kepada aparat kampung.</li>`;
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Setelah memperoleh izin, masing-masing petugas menuju wilayah tugas untuk melakukan penelusuran wilayah.</li>`;
-            }
+            let tglAwal = document.getElementById('tanggalAwal').value.trim();
+            let tglAkhir = document.getElementById('tanggalAkhir').value.trim();
+            let tglAwalDisplay = tglAwal || S.tanggalAwal ? formatTanggalRange(S.tanggalAwal, S.tanggalAkhir) : '';
+            let rangeText = tglAwalDisplay || `${fmt(S.tanggalAwal)} sampai ${fmt(S.tanggalAkhir)}`;
             
-            // ============================================================
-            // NARASI HARI KEDUA SAMPAI HARI TERAKHIR KAMPUNG
-            // ============================================================
-            else {
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim melanjutkan kegiatan pendataan door to door pada wilayah tugas masing-masing.</li>`;
-            }
-            
-            // ============================================================
-            // DATA PROGRES PER PPL (HANYA MUNCUL JIKA BUKAN HARI PERTAMA KAMPUNG 1)
-            // DAN HANYA JIKA ADA ITEMS
-            // ============================================================
-            if (!isFirstDayOfFirstKampung) {
-                let items = S.p[v.name][d].items;
-                if (items && Object.keys(items).length > 0) {
-                    Object.values(items).forEach(x => {
-                        let a = +x.assignment || 0, b = +x.bku || 0, k = +x.keluarga || 0, bl = +x.bangunan || 0, u = +x.usaha || 0;
-                        if (!a && !b && !k && !bl && !u && !x.notes) {
-                            out += `<li style="text-align:justify;margin-bottom:3pt;">PPL ${esc(x.ppl)} melakukan pendataan di SLS ${esc(x.sls)} dan tidak ada data yang berhasil didata pada hari ini.</li>`;
-                            return;
-                        }
-                        let r = [];
-                        if (b) r.push(`${b} BKU`);
-                        if (k) r.push(`${k} Keluarga`);
-                        if (bl) r.push(`${bl} Bangunan Lainnya`);
-                        let detail = r.length ? `, dengan rincian ${r.join(", ")}.` : ".";
-                        out += `<li style="text-align:justify;margin-bottom:3pt;">PPL ${esc(x.ppl)} melakukan pendataan di SLS ${esc(x.sls)} dan berhasil mendata serta submit sebanyak <b>${a}</b> assignment${detail} Total usaha yang ditemukan sebanyak <b>${u}</b> usaha.${x.notes ? " " + esc(x.notes) : ""}</li>`;
-                    });
-                }
-            }
-            
-            // ============================================================
-            // NARASI PENUTUPAN KAMPUNG TERAKHIR
-            // ============================================================
-            if (isFinalDay) {
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim melakukan check assignment dan memastikan isian kampung terakhir (${esc(v.name)}) sebelum kembali ke Waisai.</li>`;
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Petugas melakukan pengecekan administrasi dan kelengkapan hasil pendataan sebagai tahap akhir kegiatan lapangan.</li>`;
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Setelah seluruh hasil pendataan dinyatakan lengkap, tim mempersiapkan keberangkatan kembali menuju Waisai.</li>`;
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Tim meninggalkan Kampung ${esc(v.name)} dan melakukan perjalanan kembali ke Waisai.</li>`;
-                
-                let tglAwal = document.getElementById('tanggalAwal').value.trim();
-                let tglAkhir = document.getElementById('tanggalAkhir').value.trim();
-                let tglAwalDisplay = tglAwal || S.tanggalAwal ? formatTanggalRange(S.tanggalAwal, S.tanggalAkhir) : '';
-                let rangeText = tglAwalDisplay || `${fmt(S.tanggalAwal)} sampai ${fmt(S.tanggalAkhir)}`;
-                
-                out += `<li style="text-align:justify;margin-bottom:3pt;">Dengan keberangkatan tersebut, rangkaian kegiatan pendataan lapangan pada periode ${rangeText} dinyatakan selesai.</li>`;
-            }
-            
-            out += `</ul>`;
-        });
+            out += `<li style="text-align:justify;margin-bottom:3pt;">Dengan keberangkatan tersebut, rangkaian kegiatan pendataan lapangan pada periode ${rangeText} dinyatakan selesai.</li>`;
+        }
+        
+        out += `</ul>`;
     });
     
     return out;
@@ -1479,6 +1533,7 @@ function load(){
     renderPetugas();
     if(Object.keys(S.p||{}).length){$("progress").classList.remove("hidden");renderProgress();}
     renderDokumentasi();
+    $("status").innerHTML='<div class="status">✅ Data berhasil dimuat dari browser.</div>';
 }
 
 function resetAll(){
@@ -1559,26 +1614,19 @@ function exportExcel(){
     let link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     
-    // ============================================================
-    // PERUBAHAN NAMA FILE SESUAI PERMINTAAN
-    // ============================================================
-    // Ambil nama PPL Pertama
+    // Format nama file backup
     let pplNames = S.petugas.filter(p => p.trim());
     let ppl1 = pplNames.length > 0 ? pplNames[0] : "TanpaNama";
-    
-    // Ambil tanggal & jam sekarang (WIB / WIT)
     let now = new Date();
     let tgl = now.toLocaleDateString("id-ID", {day:"numeric", month:"short", year:"numeric"}).replace(/\s/g, "_");
     let jam = now.toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit", hour12:false}).replace(/:/g, ".");
-    
-    // Format Nama File: Laporan SE Tim [PPL1] - [Tanggal] - [Jam] WIT
     link.download = `Laporan SE Tim ${ppl1} - ${tgl} - ${jam} WIT.csv`;
-    // ============================================================
     
     link.click();
     URL.revokeObjectURL(link.href);
     $("status").innerHTML = '<div class="status">✅ Backup data lengkap berhasil diexport ke CSV.</div>';
 }
+
 // ===== IMPORT EXCEL (RESTORE) =====
 function importExcel(event){
     let file = event.target.files[0];
