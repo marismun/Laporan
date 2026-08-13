@@ -611,8 +611,33 @@ function renderWilayah() {
     $("wilayah").innerHTML = html;
 }
 
-function group(){let m=new Map();S.wilayah.forEach(w=>{if(!m.has(w.kampung)){let k=S.kampung.find(z=>z.kampung===w.kampung)||{};m.set(w.kampung,{name:w.kampung,distrik:w.distrik||k.distrik||"",items:[]})}m.get(w.kampung).items.push(w)});return [...m.values()]}
-
+function group(){
+    let m = new Map();
+    S.wilayah.forEach(w=>{
+        if(!m.has(w.kampung)){
+            let k = S.kampung.find(z=>z.kampung===w.kampung)||{};
+            m.set(w.kampung, {
+                name: w.kampung,
+                distrik: w.distrik || k.distrik || "",
+                items: []
+            });
+        }
+        m.get(w.kampung).items.push(w);
+    });
+    // Ambil semua kampung, lalu urutkan berdasarkan tanggal start terkecil
+    let result = [...m.values()];
+    result.sort((a,b)=>{
+        // Cari tanggal start terkecil di masing-masing kampung
+        let aStart = a.items.map(w=>w.start).sort()[0];
+        let bStart = b.items.map(w=>w.start).sort()[0];
+        let pa = aStart.split('/'), pb = bStart.split('/');
+        let da = new Date(pa[2], pa[1]-1, pa[0]);
+        let db = new Date(pb[2], pb[1]-1, pb[0]);
+        return da - db;
+    });
+    return result;
+}
+    
 function validate(){
     let petugasNama = S.petugas.filter(p => p.trim()).join(', ');
     S.tujuan = document.getElementById('tujuan').value.trim();
