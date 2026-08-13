@@ -1533,12 +1533,27 @@ function exportExcel(){
     let blob = new Blob(['\ufeff' + csvContent], {type: 'text/csv;charset=utf-8;'});
     let link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'Backup_Laporan_Pendataan.csv';
+    
+    // ============================================================
+    // PERUBAHAN NAMA FILE SESUAI PERMINTAAN
+    // ============================================================
+    // Ambil nama PPL Pertama
+    let pplNames = S.petugas.filter(p => p.trim());
+    let ppl1 = pplNames.length > 0 ? pplNames[0] : "TanpaNama";
+    
+    // Ambil tanggal & jam sekarang (WIB / WIT)
+    let now = new Date();
+    let tgl = now.toLocaleDateString("id-ID", {day:"numeric", month:"short", year:"numeric"}).replace(/\s/g, "_");
+    let jam = now.toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit", hour12:false}).replace(/:/g, ".");
+    
+    // Format Nama File: Laporan SE Tim [PPL1] - [Tanggal] - [Jam] WIT
+    link.download = `Laporan SE Tim ${ppl1} - ${tgl} - ${jam} WIT.csv`;
+    // ============================================================
+    
     link.click();
     URL.revokeObjectURL(link.href);
     $("status").innerHTML = '<div class="status">✅ Backup data lengkap berhasil diexport ke CSV.</div>';
 }
-
 // ===== IMPORT EXCEL (RESTORE) =====
 function importExcel(event){
     let file = event.target.files[0];
