@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Generator Laporan Pendataan BPS</title>
 <style>
-/* ... CSS SAMA SEPERTI SEBELUMNYA ... */
 :root {
     --primary-navy: #0C3B63;
     --primary-light: #E3F0F8;
@@ -418,33 +417,17 @@ function resizeImageToHeight(src, targetHeightCm, callback) {
 const GOOGLE_DRIVE_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxxBKubFxUcfoWXr6Xh6MF4j67Sbquli3UO_qbscwdz_Cc1ZxzLFOkZ1FaIog8XkLcm/exec';
 
 function uploadToGoogleDrive(blob, fileName, onSuccess, onError) {
-    // Konversi Blob ke base64
     const reader = new FileReader();
     reader.onload = function() {
-        // Ambil data base64 (tanpa header)
         const base64Data = reader.result.split(',')[1];
-        
-        // Kirim ke Google Apps Script
         fetch(GOOGLE_DRIVE_WEBAPP_URL, {
             method: 'POST',
             mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                file: base64Data,
-                fileName: fileName
-            })
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ file: base64Data, fileName: fileName })
         })
         .then(() => {
-            // Karena mode: no-cors, kita tidak bisa membaca response
-            // Tapi jika tidak ada error, anggap sukses
-            if (onSuccess) {
-                onSuccess({
-                    success: true,
-                    message: 'File berhasil diupload! Cek Google Drive.'
-                });
-            }
+            if (onSuccess) onSuccess({ success: true });
         })
         .catch(err => {
             console.error('Upload Google Drive error:', err);
@@ -496,13 +479,10 @@ function renderWilayah() {
     S.wilayah.forEach((x, i) => {
         let kampungOpts = S.kampung.map(k => `<option value="${esc(k.kampung)}" ${k.kampung === x.kampung ? 'selected' : ''}>${esc(k.kampung)}</option>`).join('');
         let pplOpts = S.petugas.map(p => `<option value="${esc(p)}" ${p === x.ppl ? 'selected' : ''}>${esc(p)}</option>`).join('');
-        
-        // ===== PERBAIKAN: Cek null sebelum format =====
         let startDateObj = toDateObj(x.start);
         let endDateObj = toDateObj(x.end);
         let startDisplay = startDateObj ? formatDateObj(startDateObj) : '';
         let endDisplay = endDateObj ? formatDateObj(endDateObj) : '';
-        
         html += `<div class="card">
             <div class="head"><b>Wilayah Tugas ${i+1}</b><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="S.wilayah.splice(${i},1);renderWilayah()">Hapus</button></div>
             <div class="cols-5">
@@ -523,7 +503,7 @@ function renderWilayah() {
     });
     $("wilayah").innerHTML = html;
 }
-    
+
 function group() {
     let m = new Map();
     S.wilayah.forEach(w => {
@@ -564,14 +544,24 @@ function validate() {
     return "";
 }
 
-// ===================== GENERATE FORM =====================
+// ===================== GENERATE FORM (TANPA MENIMPA DATA EDIT) =====================
 function generate() {
     let e = validate();
-    if (e) { $("status").innerHTML = `<div class="status err">${esc(e)}</div>`; return; }
+    if (e) { 
+        $("status").innerHTML = `<div class="status err">${esc(e)}</div>`; 
+        return; 
+    }
+    
     let vs = group();
-    S.p = {};
+    if (vs.length === 0) {
+        $("status").innerHTML = '<div class="status err">Tidak ada wilayah tugas yang valid.</div>';
+        return;
+    }
+
+    // ===== 1. BUAT DATA BARU DARI WILAYAH =====
+    let newData = {};
     vs.forEach(v => {
-        S.p[v.name] = {};
+        newData[v.name] = {};
         let allDates = [];
         v.items.forEach(w => {
             let days = dates(w.start, w.end);
@@ -586,10 +576,10 @@ function generate() {
         allDates.forEach((d, idx) => {
             let isFirstDayOfFirstKampung = (v.name === vs[0].name && idx === 0);
             if (isFirstDayOfFirstKampung) {
-                S.p[v.name][d] = {};
+                newData[v.name][d] = {};
                 return;
             }
-            S.p[v.name][d] = { notes: "", items: {} };
+            newData[v.name][d] = { notes: "", items: {} };
             v.items.filter(w => {
                 let dw = toDateObj(d), sw = toDateObj(w.start), ew = toDateObj(w.end);
                 return sw && ew && dw >= sw && dw <= ew;
@@ -612,7 +602,7 @@ function generate() {
                     assignVal += remAssign; bkuVal += remBku; keluargaVal += remKeluarga;
                     bangunanVal += remBangunan; usahaVal += remUsaha;
                 }
-                S.p[v.name][d].items[k] = {
+                newData[v.name][d].items[k] = {
                     sls: w.sls, ppl: w.ppl,
                     assignment: assignVal, bku: bkuVal, keluarga: keluargaVal,
                     bangunan: bangunanVal, usaha: usahaVal, notes: ""
@@ -620,10 +610,53 @@ function generate() {
             });
         });
     });
-    S.v = 0; S.docV = 0; S.docMode = 'kampung';
-    renderProgress(); renderDokumentasi();
+
+    // ===== 2. GABUNGKAN DENGAN DATA LAMA (TANPA MENIMPA) =====
+    let merged = {};
+    
+    // Salin data lama terlebih dahulu
+    for (let kampung in S.p) {
+        if (!merged[kampung]) merged[kampung] = {};
+        for (let tanggal in S.p[kampung]) {
+            if (!merged[kampung][tanggal]) merged[kampung][tanggal] = { notes: "", items: {} };
+            if (S.p[kampung][tanggal].notes) {
+                merged[kampung][tanggal].notes = S.p[kampung][tanggal].notes;
+            }
+            for (let key in S.p[kampung][tanggal].items) {
+                if (!merged[kampung][tanggal].items[key]) {
+                    merged[kampung][tanggal].items[key] = {};
+                }
+                Object.assign(merged[kampung][tanggal].items[key], S.p[kampung][tanggal].items[key]);
+            }
+        }
+    }
+
+    // Tambahkan data baru (hanya jika belum ada)
+    for (let kampung in newData) {
+        if (!merged[kampung]) merged[kampung] = {};
+        for (let tanggal in newData[kampung]) {
+            if (!merged[kampung][tanggal]) {
+                merged[kampung][tanggal] = { notes: "", items: {} };
+            }
+            for (let key in newData[kampung][tanggal].items) {
+                if (!merged[kampung][tanggal].items[key]) {
+                    merged[kampung][tanggal].items[key] = newData[kampung][tanggal].items[key];
+                }
+            }
+        }
+    }
+
+    // ===== 3. TERAPKAN DATA YANG SUDAH DIGABUNGKAN =====
+    S.p = merged;
+    
+    // ===== 4. RESET POSISI DAN RENDER ULANG =====
+    S.v = 0;
+    S.docV = 0;
+    S.docMode = 'kampung';
+    renderProgress();
+    renderDokumentasi();
     $("progress").classList.remove("hidden");
-    $("status").innerHTML = '<div class="status">✅ Form progres dan dokumentasi berhasil digenerate.</div>';
+    $("status").innerHTML = '<div class="status" style="background:#d4edda;">✅ Form progres diperbarui (data yang sudah diedit tetap dipertahankan).</div>';
 }
 
 // ===================== RENDER PROGRESS =====================
@@ -846,7 +879,7 @@ function preview(){
     } catch(err){ console.error(err); alert("Error saat Preview."); }
 }
 
-// ===================== DOWNLOAD WORD + UPLOAD KE GOOGLE DRIVE =====================
+// ===================== DOWNLOAD WORD (DIPERBAIKI UNTUK HP) =====================
 function word(){
     try {
         if(validate()){alert(validate());return;}
@@ -865,12 +898,12 @@ function word(){
     } catch(err){ console.error(err); alert("Error saat Download Word."); }
 }
 
-// ===== GENERATE WORD (DOWNLOAD + UPLOAD KE GOOGLE DRIVE) =====
+// ===== GENERATE WORD (VERSI HP-COMPATIBLE) =====
 function generateOfflineWord(resizedImages) {
     try {
         let htmlContent = generateWordHTML(resizedImages);
         
-        // ===== BIKIN WORD YANG VALID =====
+        // ===== STRUKTUR WORD YANG LEBIH SEDERHANA & KOMPATIBEL =====
         const fullHtml = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" 
       xmlns:w="urn:schemas-microsoft-com:office:word" 
@@ -878,6 +911,9 @@ function generateOfflineWord(resizedImages) {
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="ProgId" content="Word">
+    <meta name="Generator" content="Microsoft Word 15">
+    <meta name="Originator" content="Microsoft Word 15">
     <!--[if gte mso 9]>
     <xml>
         <w:WordDocument>
@@ -888,34 +924,38 @@ function generateOfflineWord(resizedImages) {
     </xml>
     <![endif]-->
     <style>
-        /* ===== STYLE UNTUK WORD ===== */
+        /* ===== STYLE UNTUK WORD (SEDERHANA) ===== */
+        /* Page setup */
         @page {
             size: 21cm 29.7cm;
-            margin-top: 2cm;
-            margin-right: 2cm;
-            margin-bottom: 2cm;
-            margin-left: 2cm;
+            margin-top: 2.54cm;
+            margin-bottom: 2.54cm;
+            margin-left: 3.17cm;
+            margin-right: 3.17cm;
             mso-page-orientation: portrait;
         }
         body {
             font-family: 'Times New Roman', Times, serif;
             font-size: 12pt;
             line-height: 1.5;
+            mso-line-height-rule: exactly;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             font-family: 'Times New Roman', Times, serif;
             font-size: 12pt;
+            border: 1px solid #000000;
         }
         td {
             border: 1px solid #000000;
-            padding: 8px;
+            padding: 6pt 8pt;
             vertical-align: top;
         }
         p {
             text-align: justify;
             margin: 0 0 6pt 0;
+            mso-para-margin-bottom: 6.0pt;
         }
         ul {
             margin-top: 3pt;
@@ -925,10 +965,34 @@ function generateOfflineWord(resizedImages) {
         li {
             text-align: justify;
             margin-bottom: 3pt;
+            mso-para-margin-bottom: 3.0pt;
         }
         img {
             max-width: 100%;
             height: auto;
+        }
+        .ttd {
+            text-align: center;
+            padding-top: 60px;
+            padding-bottom: 20px;
+        }
+        .ttd p {
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .ttd .nama {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .judul {
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 12pt;
+            margin: 0;
+            padding: 0;
+            line-height: 1.2;
         }
     </style>
 </head>
