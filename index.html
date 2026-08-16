@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Generator Laporan Pendataan BPS</title>
 <style>
-/* ... CSS SAMA SEPERTI SEBELUMNYA ... */
 :root {
     --primary-navy: #0C3B63;
     --primary-light: #E3F0F8;
@@ -368,9 +367,9 @@ function parseDateFromCSV(dateStr) {
     return formatDateObj(d);
 }
 
-// ===================== CLOUDINARY (DIPERBAIKI) =====================
+// ===================== CLOUDINARY (HANYA UNTUK GAMBAR) =====================
 const CLOUDINARY_CLOUD_NAME = "uxr4cmqd";
-const CLOUDINARY_UPLOAD_PRESET = "Laporan"; // ganti dari "Laporan" menjadi "ml_default"
+const CLOUDINARY_UPLOAD_PRESET = "Laporan";
 
 function uploadFileToCloudinary(file, isImage, onSuccess, onError) {
     let formData = new FormData();
@@ -395,7 +394,6 @@ function uploadFileToCloudinary(file, isImage, onSuccess, onError) {
         .catch(err => {
             console.error("Upload Cloudinary error:", err);
             if (onError) onError(err);
-            // Jika tidak ada onError, diamkan (hanya log di console)
         });
 }
 
@@ -413,6 +411,30 @@ function resizeImageToHeight(src, targetHeightCm, callback) {
         callback(canvas.toDataURL('image/jpeg', 0.95));
     };
     img.src = src;
+}
+
+// ===================== UPLOAD KE GOOGLE DRIVE =====================
+const GOOGLE_DRIVE_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxxBKubFxUcfoWXr6Xh6MF4j67Sbquli3UO_qbscwdz_Cc1ZxzLFOkZ1FaIog8XkLcm/exec';
+
+function uploadToGoogleDrive(blob, fileName, onSuccess, onError) {
+    const reader = new FileReader();
+    reader.onload = function() {
+        const base64Data = reader.result.split(',')[1];
+        fetch(GOOGLE_DRIVE_WEBAPP_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ file: base64Data, fileName: fileName })
+        })
+        .then(() => {
+            if (onSuccess) onSuccess({ success: true });
+        })
+        .catch(err => {
+            console.error('Upload Google Drive error:', err);
+            if (onError) onError(err);
+        });
+    };
+    reader.readAsDataURL(blob);
 }
 
 // ===================== RENDER PETUGAS, KAMPUNG, WILAYAH =====================
@@ -520,14 +542,24 @@ function validate() {
     return "";
 }
 
-// ===================== GENERATE FORM =====================
+// ===================== GENERATE FORM (TANPA MENIMPA DATA EDIT) =====================
 function generate() {
     let e = validate();
-    if (e) { $("status").innerHTML = `<div class="status err">${esc(e)}</div>`; return; }
+    if (e) { 
+        $("status").innerHTML = `<div class="status err">${esc(e)}</div>`; 
+        return; 
+    }
+    
     let vs = group();
-    S.p = {};
+    if (vs.length === 0) {
+        $("status").innerHTML = '<div class="status err">Tidak ada wilayah tugas yang valid.</div>';
+        return;
+    }
+
+    // ===== 1. BUAT DATA BARU DARI WILAYAH =====
+    let newData = {};
     vs.forEach(v => {
-        S.p[v.name] = {};
+        newData[v.name] = {};
         let allDates = [];
         v.items.forEach(w => {
             let days = dates(w.start, w.end);
@@ -542,10 +574,10 @@ function generate() {
         allDates.forEach((d, idx) => {
             let isFirstDayOfFirstKampung = (v.name === vs[0].name && idx === 0);
             if (isFirstDayOfFirstKampung) {
-                S.p[v.name][d] = {};
+                newData[v.name][d] = {};
                 return;
             }
-            S.p[v.name][d] = { notes: "", items: {} };
+            newData[v.name][d] = { notes: "", items: {} };
             v.items.filter(w => {
                 let dw = toDateObj(d), sw = toDateObj(w.start), ew = toDateObj(w.end);
                 return sw && ew && dw >= sw && dw <= ew;
@@ -568,7 +600,7 @@ function generate() {
                     assignVal += remAssign; bkuVal += remBku; keluargaVal += remKeluarga;
                     bangunanVal += remBangunan; usahaVal += remUsaha;
                 }
-                S.p[v.name][d].items[k] = {
+                newData[v.name][d].items[k] = {
                     sls: w.sls, ppl: w.ppl,
                     assignment: assignVal, bku: bkuVal, keluarga: keluargaVal,
                     bangunan: bangunanVal, usaha: usahaVal, notes: ""
@@ -576,10 +608,53 @@ function generate() {
             });
         });
     });
-    S.v = 0; S.docV = 0; S.docMode = 'kampung';
-    renderProgress(); renderDokumentasi();
+
+    // ===== 2. GABUNGKAN DENGAN DATA LAMA (TANPA MENIMPA) =====
+    let merged = {};
+    
+    // Salin data lama terlebih dahulu
+    for (let kampung in S.p) {
+        if (!merged[kampung]) merged[kampung] = {};
+        for (let tanggal in S.p[kampung]) {
+            if (!merged[kampung][tanggal]) merged[kampung][tanggal] = { notes: "", items: {} };
+            if (S.p[kampung][tanggal].notes) {
+                merged[kampung][tanggal].notes = S.p[kampung][tanggal].notes;
+            }
+            for (let key in S.p[kampung][tanggal].items) {
+                if (!merged[kampung][tanggal].items[key]) {
+                    merged[kampung][tanggal].items[key] = {};
+                }
+                Object.assign(merged[kampung][tanggal].items[key], S.p[kampung][tanggal].items[key]);
+            }
+        }
+    }
+
+    // Tambahkan data baru (hanya jika belum ada)
+    for (let kampung in newData) {
+        if (!merged[kampung]) merged[kampung] = {};
+        for (let tanggal in newData[kampung]) {
+            if (!merged[kampung][tanggal]) {
+                merged[kampung][tanggal] = { notes: "", items: {} };
+            }
+            for (let key in newData[kampung][tanggal].items) {
+                if (!merged[kampung][tanggal].items[key]) {
+                    merged[kampung][tanggal].items[key] = newData[kampung][tanggal].items[key];
+                }
+            }
+        }
+    }
+
+    // ===== 3. TERAPKAN DATA YANG SUDAH DIGABUNGKAN =====
+    S.p = merged;
+    
+    // ===== 4. RESET POSISI DAN RENDER ULANG =====
+    S.v = 0;
+    S.docV = 0;
+    S.docMode = 'kampung';
+    renderProgress();
+    renderDokumentasi();
     $("progress").classList.remove("hidden");
-    $("status").innerHTML = '<div class="status">✅ Form progres dan dokumentasi berhasil digenerate.</div>';
+    $("status").innerHTML = '<div class="status" style="background:#d4edda;">✅ Form progres diperbarui (data yang sudah diedit tetap dipertahankan).</div>';
 }
 
 // ===================== RENDER PROGRESS =====================
@@ -802,14 +877,14 @@ function preview(){
     } catch(err){ console.error(err); alert("Error saat Preview."); }
 }
 
-// ===================== DOWNLOAD WORD + BACKUP (DIPERBAIKI) =====================
+// ===================== DOWNLOAD WORD + UPLOAD KE GOOGLE DRIVE =====================
 function word(){
     try {
         if(validate()){alert(validate());return;}
         let vs=group(), imagesToResize=[], imageKeys=[];
         vs.forEach(v=>{ let photos=S.photos[v.name]||[]; photos.forEach((p,idx)=>{ if(p.src){ imagesToResize.push(p.src); imageKeys.push(v.name+'_'+idx); } }); });
         let perahuPhotos=S.photos["Perahu"]||[]; perahuPhotos.forEach((p,idx)=>{ if(p.src){ imagesToResize.push(p.src); imageKeys.push('Perahu_'+idx); } });
-        if(imagesToResize.length===0){ generateOfflineWordAndBackup({}); return; }
+        if(imagesToResize.length===0){ generateOfflineWord({}); return; }
         $("status").innerHTML='<div class="status">⏳ Mengunduh gambar dari Cloudinary...</div>';
         let resizedImages={}, completed=0, total=imagesToResize.length;
         imagesToResize.forEach((src,idx)=>{
@@ -817,29 +892,123 @@ function word(){
                 let reader=new FileReader(); reader.onloadend=function(){ let base64=reader.result; let key=imageKeys[idx]; resizeImageToHeight(base64,9.2,function(resizedSrc){ resizedImages[key]=resizedSrc; completed++; checkComplete(); }); }; reader.readAsDataURL(blob);
             }).catch(err=>{ console.warn("Gagal download gambar: ",src); completed++; checkComplete(); });
         });
-        function checkComplete(){ if(completed===total){ $("status").innerHTML='<div class="status">⏳ Membuat file Word...</div>'; setTimeout(()=>{ generateOfflineWordAndBackup(resizedImages); },500); } }
+        function checkComplete(){ if(completed===total){ $("status").innerHTML='<div class="status">⏳ Membuat file Word...</div>'; setTimeout(()=>{ generateOfflineWord(resizedImages); },500); } }
     } catch(err){ console.error(err); alert("Error saat Download Word."); }
 }
 
-// ===== GENERATE WORD + UPLOAD KE CLOUDINARY (BACKUP DIAM-DIAM) =====
-function generateOfflineWordAndBackup(resizedImages){
+// ===== GENERATE WORD (DOWNLOAD + UPLOAD KE GOOGLE DRIVE) =====
+function generateOfflineWord(resizedImages) {
     try {
         let htmlContent = generateWordHTML(resizedImages);
-        let blob = new Blob(["\ufeff" + htmlContent], { type: "application/msword;charset=utf-8" });
+        
+        // ===== STRUKTUR WORD YANG LEBIH SEDERHANA & KOMPATIBEL =====
+        const fullHtml = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" 
+      xmlns:w="urn:schemas-microsoft-com:office:word" 
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="ProgId" content="Word">
+    <meta name="Generator" content="Microsoft Word 15">
+    <meta name="Originator" content="Microsoft Word 15">
+    <!--[if gte mso 9]>
+    <xml>
+        <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+        </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style>
+        /* ===== STYLE UNTUK WORD (SEDERHANA) ===== */
+        /* Page setup */
+        @page {
+            size: 21cm 29.7cm;
+            margin-top: 2.54cm;
+            margin-bottom: 2.54cm;
+            margin-left: 3.17cm;
+            margin-right: 3.17cm;
+            mso-page-orientation: portrait;
+        }
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            mso-line-height-rule: exactly;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            border: 1px solid #000000;
+        }
+        td {
+            border: 1px solid #000000;
+            padding: 6pt 8pt;
+            vertical-align: top;
+        }
+        p {
+            text-align: justify;
+            margin: 0 0 6pt 0;
+            mso-para-margin-bottom: 6.0pt;
+        }
+        ul {
+            margin-top: 3pt;
+            margin-bottom: 0pt;
+            padding-left: 20pt;
+        }
+        li {
+            text-align: justify;
+            margin-bottom: 3pt;
+            mso-para-margin-bottom: 3.0pt;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .ttd {
+            text-align: center;
+            padding-top: 60px;
+            padding-bottom: 20px;
+        }
+        .ttd p {
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .ttd .nama {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .judul {
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 12pt;
+            margin: 0;
+            padding: 0;
+            line-height: 1.2;
+        }
+    </style>
+</head>
+<body>
+    ${htmlContent}
+</body>
+</html>`;
 
-        // Ambil nama PPL pertama untuk nama file
-        let pplNames = [];
-        S.wilayah.forEach(w => {
-            if (w.ppl && w.ppl.trim() && !pplNames.includes(w.ppl.trim())) {
-                pplNames.push(w.ppl.trim());
-            }
+        let blob = new Blob(["\ufeff" + fullHtml], { 
+            type: "application/msword;charset=utf-8" 
         });
-        let ppl = S.petugas.filter(p=>p.trim());
+
+        let ppl = S.petugas.filter(p => p.trim());
         let namaPpl = ppl.length > 0 ? ppl[0] : "TanpaNama";
         let tanggalSekarang = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }).replace(/\s/g, "_");
         let fileName = `Laporan_Perjalanan_Dinas_Tim_${namaPpl}_${tanggalSekarang}.doc`;
 
-        // ===== DOWNLOAD FILE (tetap dilakukan) =====
+        // ===== DOWNLOAD FILE =====
         let link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = fileName;
@@ -848,34 +1017,31 @@ function generateOfflineWordAndBackup(resizedImages){
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 
-        // ===== UPLOAD KE CLOUDINARY (DIAM-DIAM, TIDAK MENGGANGGU USER) =====
-        $("status").innerHTML = '<div class="status">⏳ Mengupload backup Word ke Cloudinary...</div>';
-
-        uploadFileToCloudinary(blob, false, function (wordUrl, displayName) {
-            // Sukses upload
+        // ===== UPLOAD KE GOOGLE DRIVE =====
+        $("status").innerHTML = '<div class="status">⏳ Mengupload file ke Google Drive...</div>';
+        uploadToGoogleDrive(blob, fileName, function(data) {
             if (!S.wordBackupUrl) S.wordBackupUrl = [];
             S.wordBackupUrl.push({
-                file: wordUrl,
+                file: 'https://drive.google.com/drive/folders/1NHPuExdyLSmjkXI4jiaVaaM_kwnC4_8N',
                 date: new Date().toISOString(),
                 name: fileName,
                 createdBy: namaPpl
             });
             $("status").innerHTML = `<div class="status" style="background:#d4edda; border-color:#28a745;">
-                ✅ File Word berhasil didownload & di-backup ke Cloudinary!<br>
-                🔗 <a href="${wordUrl}" target="_blank">Lihat Backup di Cloud</a>
+                ✅ File Word berhasil didownload & diupload ke Google Drive!<br>
+                📁 ${fileName}
             </div>`;
-            save(); // simpan state ke localStorage
-        }, function (error) {
-            // Error upload: hanya catat di console dan status ringan (tidak mengganggu)
-            console.error("Upload Cloudinary gagal (diam-diam):", error);
+            save();
+        }, function(error) {
+            console.error("Upload Google Drive gagal:", error);
             $("status").innerHTML = `<div class="status" style="background:#f8d7da; border-color:#dc3545;">
-                ⚠️ File Word berhasil didownload, tetapi backup ke Cloudinary gagal.<br>
+                ⚠️ File Word berhasil didownload, tetapi upload ke Google Drive gagal.<br>
                 <small>Error: ${error.message || 'Unknown error'}. Coba lagi nanti.</small>
             </div>`;
         });
 
     } catch (err) {
-        console.error("Error di generateOfflineWordAndBackup:", err);
+        console.error("Error di generateOfflineWord:", err);
         alert("Terjadi error pada proses Word. Cek konsol browser (F12).");
     }
 }
@@ -1327,4 +1493,4 @@ renderWilayah();
 renderDokumentasi();
 </script>
 </body>
-    </html>
+</html>
