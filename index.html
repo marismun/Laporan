@@ -190,6 +190,7 @@ footer{margin-top:30px;text-align:center;color:var(--text-gray);font-size:12px;b
         <button class="btn btn-outline" onclick="save()">💾 Simpan</button>
         <button class="btn btn-outline" onclick="load()">📂 Muat</button>
         <button class="btn btn-danger" onclick="resetAll()">🗑 Hapus</button>
+        <button class="btn btn-outline" onclick="downloadHTML()">🌐 HTML</button>
     </div>
     <div class="toolbar-right">
         <button class="btn btn-primary" onclick="preview()">👁 Preview</button>
@@ -435,6 +436,71 @@ function uploadToGoogleDrive(blob, fileName, onSuccess, onError) {
         });
     };
     reader.readAsDataURL(blob);
+}
+
+// ===================== DOWNLOAD HTML (ALTERNATIF UNTUK HP) =====================
+function downloadHTML() {
+    try {
+        if (validate()) { alert(validate()); return; }
+        let htmlContent = generateWordHTML(null);
+        const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Laporan Perjalanan Dinas</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+        }
+        td {
+            border: 1px solid #000;
+            padding: 8px;
+            vertical-align: top;
+        }
+        .col-kiri { width: 35%; }
+        .col-kanan { width: 65%; }
+        p { text-align: justify; margin: 0 0 6pt 0; }
+        ul { margin-top: 3pt; padding-left: 20pt; }
+        li { text-align: justify; margin-bottom: 3pt; }
+        .ttd { text-align: center; padding-top: 60px; padding-bottom: 20px; }
+        .ttd p { text-align: center; margin: 0; padding: 0; }
+        .ttd .nama { font-weight: bold; text-decoration: underline; }
+        .judul { text-align: center; font-weight: bold; text-transform: uppercase; font-size: 12pt; margin: 0; padding: 0; }
+        img { max-width: 100%; height: auto; }
+        @media print {
+            body { margin: 0; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    ${htmlContent}
+</body>
+</html>`;
+        let blob = new Blob([fullHtml], { type: "text/html;charset=utf-8" });
+        let link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Laporan_${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}).replace(/\s/g,'_')}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        $("status").innerHTML = '<div class="status" style="background:#d4edda;">✅ File HTML berhasil didownload! Buka di browser HP.</div>';
+    } catch(err) {
+        console.error(err);
+        alert("Error: " + err.message);
+    }
 }
 
 // ===================== RENDER PETUGAS, KAMPUNG, WILAYAH =====================
@@ -836,15 +902,31 @@ function generateWordHTML(resizedImages) {
     let perihal = esc(document.getElementById('perihal').value.trim());
     let nomorSurat = esc(document.getElementById('nomorSurat').value.trim());
     let pplNames = S.petugas.filter(p => p.trim());
-    docHtml += `<tr><td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;"><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">LAPORAN PERJALANAN DINAS</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;"> </p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;"> </p></td></tr>`;
-    docHtml += `<table style="width:100%;border-collapse:collapse;font-family:'Times New Roman',serif;font-size:12pt;border:1px solid #000;">`;
-    docHtml += `<tr><td style="border:1px solid #000;padding:8px;vertical-align:top;width:50%;"><b>Tujuan:</b> ${tujuan}</td><td style="border:1px solid #000;padding:8px;vertical-align:top;width:50%;"><b>Nama:</b><br>${pplNames.map((p,i)=>`${i+1}. ${esc(p)}`).join('<br>')}</td></tr>`;
-    docHtml += `<tr><td style="border:1px solid #000;padding:8px;vertical-align:top;"><b>Tanggal Tugas:</b> ${tanggalDisplay}</td><td style="border:1px solid #000;padding:8px;vertical-align:top;"></td></tr>`;
-    docHtml += `<tr><td style="border:1px solid #000;padding:8px;vertical-align:top;"><b>Perihal:</b> ${perihal}</td><td style="border:1px solid #000;padding:8px;vertical-align:top;padding-top:20px;padding-bottom:20px;"><b>Tanda Tangan</b><br><br>${pplNames.map((p,i)=>`${i+1}. <span style="color:white;">${esc(p)}</span><br><br>`).join('')}</td></tr>`;
+    
+    // ===== PERBAIKAN: Tambahkan class col-kiri dan col-kanan =====
+    docHtml += `<tr><td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;" colspan="2"><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">LAPORAN PERJALANAN DINAS</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;"> </p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;"> </p></td></tr>`;
+    docHtml += `<table style="width:100%;border-collapse:collapse;font-family:'Times New Roman',serif;font-size:12pt;border:1px solid #000;table-layout:fixed;">`;
+    docHtml += `<tr><td class="col-kiri" style="border:1px solid #000;padding:8px;vertical-align:top;width:35%;"><b>Tujuan:</b> ${tujuan}</td>
+                   <td class="col-kanan" style="border:1px solid #000;padding:8px;vertical-align:top;width:65%;"><b>Nama:</b><br>${pplNames.map((p,i)=>`${i+1}. ${esc(p)}`).join('<br>')}</td></tr>`;
+    docHtml += `<tr><td class="col-kiri" style="border:1px solid #000;padding:8px;vertical-align:top;"><b>Tanggal Tugas:</b> ${tanggalDisplay}</td>
+                   <td class="col-kanan" style="border:1px solid #000;padding:8px;vertical-align:top;"></td></tr>`;
+    docHtml += `<tr><td class="col-kiri" style="border:1px solid #000;padding:8px;vertical-align:top;"><b>Perihal:</b> ${perihal}</td>
+                   <td class="col-kanan" style="border:1px solid #000;padding:8px;vertical-align:top;padding-top:20px;padding-bottom:20px;"><b>Tanda Tangan</b><br><br>${pplNames.map((p,i)=>`${i+1}. <span style="color:white;">${esc(p)}</span><br><br>`).join('')}</td></tr>`;
     docHtml += `<tr><td colspan="2" style="border:1px solid #000;padding:8px;vertical-align:top;"><b>Nomor Surat Tugas:</b> ${nomorSurat}</td></tr>`;
     docHtml += `<tr><td colspan="2" style="border:1px solid #000;padding:8px;vertical-align:top;">${generateNarrativeTable()}</td></tr>`;
-    docHtml += `<tr><td style="border:none;padding:8px;vertical-align:top;width:50%;"></td><td style="border:none;padding:8px;vertical-align:bottom;text-align:center;width:50%;"><div style="text-align:center;padding-top:60px;padding-bottom:20px;"><p style="text-align:center;margin:0;padding:0;font-weight:normal;">Mengetahui</p><p style="text-align:center;margin:0;padding:0;font-weight:normal;">Kepala BPS Kabupaten Raja Ampat</p><br><br><br><br><br><br><p style="text-align:center;margin:0;padding:0;font-weight:bold;text-decoration:underline;">Frida Irian S. Ompusunggu, SST, M.Ling.</p><p style="text-align:center;margin:0;padding:0;">NIP. 19860407 200902 2 004</p></div></td></tr>`;
+    docHtml += `<tr><td style="border:none;padding:8px;vertical-align:top;width:50%;"></td>
+                   <td style="border:none;padding:8px;vertical-align:bottom;text-align:center;width:50%;">
+                       <div style="text-align:center;padding-top:60px;padding-bottom:20px;">
+                           <p style="text-align:center;margin:0;padding:0;font-weight:normal;">Mengetahui</p>
+                           <p style="text-align:center;margin:0;padding:0;font-weight:normal;">Kepala BPS Kabupaten Raja Ampat</p>
+                           <br><br><br><br><br><br>
+                           <p style="text-align:center;margin:0;padding:0;font-weight:bold;text-decoration:underline;">Frida Irian S. Ompusunggu, SST, M.Ling.</p>
+                           <p style="text-align:center;margin:0;padding:0;">NIP. 19860407 200902 2 004</p>
+                       </div>
+                   </td></tr>`;
     docHtml += `</table>`;
+    
+    // ===== DOKUMENTASI =====
     vs.forEach((v,index)=>{
         let photos = S.photos[v.name] || [];
         let hasPhoto = photos.some(p=>p.src);
@@ -898,12 +980,12 @@ function word(){
     } catch(err){ console.error(err); alert("Error saat Download Word."); }
 }
 
-// ===== GENERATE WORD (VERSI HP-COMPATIBLE) =====
+// ===== GENERATE WORD (VERSI HP-COMPATIBLE DENGAN PERBAIKAN CSS) =====
 function generateOfflineWord(resizedImages) {
     try {
         let htmlContent = generateWordHTML(resizedImages);
         
-        // ===== STRUKTUR WORD YANG LEBIH SEDERHANA & KOMPATIBEL =====
+        // ===== STRUKTUR WORD DENGAN CSS YANG DIPERBAIKI =====
         const fullHtml = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" 
       xmlns:w="urn:schemas-microsoft-com:office:word" 
@@ -924,8 +1006,7 @@ function generateOfflineWord(resizedImages) {
     </xml>
     <![endif]-->
     <style>
-        /* ===== STYLE UNTUK WORD (SEDERHANA) ===== */
-        /* Page setup */
+        /* ===== STYLE UNTUK WORD (DIPERBAIKI UNTUK WPS MOBILE) ===== */
         @page {
             size: 21cm 29.7cm;
             margin-top: 2.54cm;
@@ -939,18 +1020,30 @@ function generateOfflineWord(resizedImages) {
             font-size: 12pt;
             line-height: 1.5;
             mso-line-height-rule: exactly;
+            margin: 0;
+            padding: 0;
         }
         table {
             width: 100%;
             border-collapse: collapse;
+            border: 1px solid #000000;
+            table-layout: fixed;
             font-family: 'Times New Roman', Times, serif;
             font-size: 12pt;
-            border: 1px solid #000000;
+            page-break-inside: avoid;
         }
         td {
             border: 1px solid #000000;
-            padding: 6pt 8pt;
+            padding: 8pt 10pt;
             vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .col-kiri {
+            width: 35%;
+        }
+        .col-kanan {
+            width: 65%;
         }
         p {
             text-align: justify;
@@ -973,7 +1066,7 @@ function generateOfflineWord(resizedImages) {
         }
         .ttd {
             text-align: center;
-            padding-top: 60px;
+            padding-top: 30px;
             padding-bottom: 20px;
         }
         .ttd p {
