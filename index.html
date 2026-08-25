@@ -436,15 +436,16 @@ function resizeImageToHeight(src, targetHeightCm, callback) {
             canvas.width = targetWidthPx;
             canvas.height = targetHeightPx;
             ctx.drawImage(img, 0, 0, targetWidthPx, targetHeightPx);
-            callback(canvas.toDataURL('image/jpeg', 0.95));
+            // Ganti ke PNG
+            callback(canvas.toDataURL('image/png'));
         } catch (e) {
             console.warn("Resize error:", e);
-            callback(src); // fallback ke gambar asli
+            callback(src);
         }
     };
     img.onerror = function() {
         console.warn("Gagal memuat gambar untuk resize, gunakan src asli.");
-        callback(src); // fallback
+        callback(src);
     };
     img.src = src;
 }
