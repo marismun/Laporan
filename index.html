@@ -850,9 +850,48 @@ function preview(){
 function word(){
     try {
         if(validate()){alert(validate());return;}
-        // Langsung generate Word dengan gambar asli tanpa resize
-        $("status").innerHTML='<div class="status">⏳ Membuat file Word...</div>';
-        setTimeout(()=>{ generateOfflineWord({}); },300);
+        let vs=group(), imagesToDownload=[], imageKeys=[];
+        vs.forEach(v=>{ let photos=S.photos[v.name]||[]; photos.forEach((p,idx)=>{ if(p.src){ imagesToDownload.push(p.src); imageKeys.push(v.name+'_'+idx); } }); });
+        let perahuPhotos=S.photos["Perahu"]||[]; perahuPhotos.forEach((p,idx)=>{ if(p.src){ imagesToDownload.push(p.src); imageKeys.push('Perahu_'+idx); } });
+        
+        if(imagesToDownload.length===0){ generateOfflineWord({}); return; }
+        
+        $("status").innerHTML='<div class="status">⏳ Mengunduh gambar...</div>';
+        let downloadedImages={}, completed=0, total=imagesToDownload.length;
+        
+        function done(){
+            completed++;
+            if(completed===total){
+                $("status").innerHTML='<div class="status">⏳ Membuat file Word...</div>';
+                setTimeout(()=>{ generateOfflineWord(downloadedImages); },500);
+            }
+        }
+        
+        imagesToDownload.forEach((src,idx)=>{
+            fetch(src)
+                .then(r=>{ if(!r.ok) throw new Error("Gagal fetch"); return r.blob(); })
+                .then(blob=>{
+                    return new Promise((resolve,reject)=>{
+                        let reader=new FileReader();
+                        reader.onloadend=function(){
+                            try {
+                                let base64=reader.result;
+                                let key=imageKeys[idx];
+                                // Simpan base64 asli tanpa resize
+                                downloadedImages[key]=base64;
+                                resolve();
+                            } catch(e) { reject(e); }
+                        };
+                        reader.onerror=reject;
+                        reader.readAsDataURL(blob);
+                    });
+                })
+                .then(()=>{ done(); })
+                .catch(err=>{
+                    console.warn("Gagal download gambar: ",src,err);
+                    done();
+                });
+        });
     } catch(err){ 
         console.error(err); 
         alert("Error saat Download Word: " + err.message);
