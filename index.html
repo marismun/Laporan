@@ -825,7 +825,7 @@ function generateWordHTML(resizedImages) {
                     let imgSrc=p.src; 
                     let key=v.name+'_'+idx; 
                     if(resizedImages&&resizedImages[key]) imgSrc=resizedImages[key]; 
-                    docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" style="height:340px;width:auto;max-width:100%;object-fit:contain;border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;mso-height-rule:exactly;">${p.caption?`<p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(p.caption)}</p>`:''}</td></tr>`; 
+                    docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" width="auto" height="340" style="border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;">${p.caption?`<p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(p.caption)}</p>`:''}</td></tr>`; 
                 } 
             });
             docHtml += `</table></div>`;
@@ -844,14 +844,14 @@ function generateWordHTML(resizedImages) {
                 if(resizedImages&&resizedImages[key]) imgSrc=resizedImages[key]; 
                 let defaultCaption=idx===0?"Dokumentasi diatas perahu":"Foto KTP Motoris"; 
                 let caption=p.caption||defaultCaption; 
-                docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" style="height:340px;width:auto;max-width:100%;object-fit:contain;border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;mso-height-rule:exactly;"><p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(caption)}</p></td></tr>`; 
+                docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" width="auto" height="340" style="border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;"><p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(caption)}</p></td></tr>`; 
             } 
         });
         docHtml += `</table></div>`;
     }
     return docHtml;
 }
-
+    
 function preview(){
     try {
         if(validate()){alert(validate());return;}
