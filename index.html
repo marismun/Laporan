@@ -877,8 +877,8 @@ function word(){
                             try {
                                 let base64=reader.result;
                                 let key=imageKeys[idx];
-                                // Kompres dengan lebar maksimal 1200px, kualitas 0.9
-                                compressImageForWord(base64, 463, 0.9, function(compressedSrc){
+                                // Target tinggi 340px (setara 9cm / 255pt)
+                                compressImageByHeight(base64, 340, 0.9, function(compressedSrc){
                                     processedImages[key]=compressedSrc;
                                     resolve();
                                 });
