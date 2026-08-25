@@ -424,29 +424,20 @@ function uploadFileToCloudinary(file, isImage, onSuccess, onError) {
         });
 }
 
-function compressImageForWord(src, maxWidthPx, quality, callback) {
+function compressImageByHeight(src, targetHeightPx, quality, callback) {
     const img = new Image();
     img.onload = function() {
         try {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
-            // Hitung rasio
-            let width = img.width;
-            let height = img.height;
-            const maxDim = maxWidthPx;
-            
-            if (width > maxDim) {
-                const ratio = maxDim / width;
-                width = maxDim;
-                height = Math.round(height * ratio);
-            }
+            const ratio = img.width / img.height;
+            let width = Math.round(targetHeightPx * ratio);
+            let height = targetHeightPx;
             
             canvas.width = width;
             canvas.height = height;
             ctx.drawImage(img, 0, 0, width, height);
             
-            // Ubah ke JPEG dengan kualitas tertentu
             callback(canvas.toDataURL('image/jpeg', quality));
         } catch (e) {
             console.warn("Compress error:", e);
@@ -459,7 +450,6 @@ function compressImageForWord(src, maxWidthPx, quality, callback) {
     };
     img.src = src;
 }
-
 // ===================== RENDER PETUGAS =====================
 function renderPetugas() {
     const container = document.getElementById('petugas-container');
@@ -888,7 +878,7 @@ function word(){
                                 let base64=reader.result;
                                 let key=imageKeys[idx];
                                 // Kompres dengan lebar maksimal 1200px, kualitas 0.9
-                                compressImageForWord(base64, 1200, 0.9, function(compressedSrc){
+                                compressImageForWord(base64, 463, 0.9, function(compressedSrc){
                                     processedImages[key]=compressedSrc;
                                     resolve();
                                 });
