@@ -878,7 +878,7 @@ function word(){
                                 let base64=reader.result;
                                 let key=imageKeys[idx];
                                 // Target tinggi 340px (setara 9cm / 255pt)
-                                compressImageByHeight(base64, 340, 0.9, function(compressedSrc){
+                                compressImageByHeight(base64, 1000, 0.9, function(compressedSrc){
                                     processedImages[key]=compressedSrc;
                                     resolve();
                                 });
