@@ -424,32 +424,31 @@ function uploadFileToCloudinary(file, isImage, onSuccess, onError) {
         });
 }
 
-function compressImageByHeight(src, targetHeightPx, quality, callback) {
+function resizeImageToHeight(src, targetHeightCm, callback) {
+    const targetHeightPx = targetHeightCm * 37.795;
     const img = new Image();
     img.onload = function() {
         try {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const ratio = img.width / img.height;
-            let width = Math.round(targetHeightPx * ratio);
-            let height = targetHeightPx;
-            
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            callback(canvas.toDataURL('image/jpeg', quality));
+            const targetWidthPx = targetHeightPx * ratio;
+            canvas.width = targetWidthPx;
+            canvas.height = targetHeightPx;
+            ctx.drawImage(img, 0, 0, targetWidthPx, targetHeightPx);
+            callback(canvas.toDataURL('image/jpeg', 0.95));
         } catch (e) {
-            console.warn("Compress error:", e);
-            callback(src);
+            console.warn("Resize error:", e);
+            callback(src); // fallback ke gambar asli
         }
     };
     img.onerror = function() {
-        console.warn("Gagal memuat gambar, gunakan src asli.");
-        callback(src);
+        console.warn("Gagal memuat gambar untuk resize, gunakan src asli.");
+        callback(src); // fallback
     };
     img.src = src;
 }
+
 // ===================== RENDER PETUGAS =====================
 function renderPetugas() {
     const container = document.getElementById('petugas-container');
@@ -820,14 +819,7 @@ function generateWordHTML(resizedImages) {
             else docHtml += `<div style="margin-top:0;margin-bottom:0;"><!--[if gte mso 9]><br clear="all" style="mso-break-type:section-break;page-break-before:always;"><![endif]-->`;
             docHtml += `<table style="width:100%;border-collapse:collapse;border:none;mso-table-lspace:0;mso-table-rspace:0;margin-top:0;margin-bottom:0;">`;
             docHtml += `<tr><td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;"><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">DOKUMENTASI PERJALANAN DINAS PELAKSANAAN LAPANGAN</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">SENSUS EKONOMI 2026</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">KAMPUNG ${esc(v.name).toUpperCase()}</p></td></tr>`;
-            photos.forEach((p,idx)=>{ 
-                if(p.src){ 
-                    let imgSrc=p.src; 
-                    let key=v.name+'_'+idx; 
-                    if(resizedImages&&resizedImages[key]) imgSrc=resizedImages[key]; 
-                    docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" width="auto" height="340" style="border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;">${p.caption?`<p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(p.caption)}</p>`:''}</td></tr>`; 
-                } 
-            });
+            photos.forEach((p,idx)=>{ if(p.src){ let imgSrc=p.src; let key=v.name+'_'+idx; if(resizedImages&&resizedImages[key]) imgSrc=resizedImages[key]; docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" style="height:347pt;width:auto;max-width:100%;object-fit:contain;border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;mso-height-rule:exactly;">${p.caption?`<p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(p.caption)}</p>`:''}</td></tr>`; } });
             docHtml += `</table></div>`;
         }
     });
@@ -837,21 +829,12 @@ function generateWordHTML(resizedImages) {
         docHtml += `<div style="margin-top:0;margin-bottom:0;"><!--[if gte mso 9]><br clear="all" style="mso-break-type:section-break;page-break-before:always;"><![endif]-->`;
         docHtml += `<table style="width:100%;border-collapse:collapse;border:none;mso-table-lspace:0;mso-table-rspace:0;margin-top:0;margin-bottom:0;">`;
         docHtml += `<tr><td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;"><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">SPJ TRANSPORTASI</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;"> </p></td></tr>`;
-        perahuPhotos.forEach((p,idx)=>{ 
-            if(p.src){ 
-                let imgSrc=p.src; 
-                let key='Perahu_'+idx; 
-                if(resizedImages&&resizedImages[key]) imgSrc=resizedImages[key]; 
-                let defaultCaption=idx===0?"Dokumentasi diatas perahu":"Foto KTP Motoris"; 
-                let caption=p.caption||defaultCaption; 
-                docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" width="auto" height="340" style="border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;"><p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(caption)}</p></td></tr>`; 
-            } 
-        });
+        perahuPhotos.forEach((p,idx)=>{ if(p.src){ let imgSrc=p.src; let key='Perahu_'+idx; if(resizedImages&&resizedImages[key]) imgSrc=resizedImages[key]; let defaultCaption=idx===0?"Dokumentasi diatas perahu":"Foto KTP Motoris"; let caption=p.caption||defaultCaption; docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" style="height:347pt;width:auto;max-width:100%;object-fit:contain;border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;mso-height-rule:exactly;"><p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(caption)}</p></td></tr>`; } });
         docHtml += `</table></div>`;
     }
     return docHtml;
 }
-    
+
 function preview(){
     try {
         if(validate()){alert(validate());return;}
@@ -866,24 +849,20 @@ function preview(){
 function word(){
     try {
         if(validate()){alert(validate());return;}
-        let vs=group(), imagesToDownload=[], imageKeys=[];
-        vs.forEach(v=>{ let photos=S.photos[v.name]||[]; photos.forEach((p,idx)=>{ if(p.src){ imagesToDownload.push(p.src); imageKeys.push(v.name+'_'+idx); } }); });
-        let perahuPhotos=S.photos["Perahu"]||[]; perahuPhotos.forEach((p,idx)=>{ if(p.src){ imagesToDownload.push(p.src); imageKeys.push('Perahu_'+idx); } });
-        
-        if(imagesToDownload.length===0){ generateOfflineWord({}); return; }
-        
-        $("status").innerHTML='<div class="status">⏳ Mengunduh dan mengompres gambar...</div>';
-        let processedImages={}, completed=0, total=imagesToDownload.length;
-        
+        let vs=group(), imagesToResize=[], imageKeys=[];
+        vs.forEach(v=>{ let photos=S.photos[v.name]||[]; photos.forEach((p,idx)=>{ if(p.src){ imagesToResize.push(p.src); imageKeys.push(v.name+'_'+idx); } }); });
+        let perahuPhotos=S.photos["Perahu"]||[]; perahuPhotos.forEach((p,idx)=>{ if(p.src){ imagesToResize.push(p.src); imageKeys.push('Perahu_'+idx); } });
+        if(imagesToResize.length===0){ generateOfflineWord({}); return; }
+        $("status").innerHTML='<div class="status">⏳ Mengunduh gambar dari Cloudinary...</div>';
+        let resizedImages={}, completed=0, total=imagesToResize.length;
         function done(){
             completed++;
             if(completed===total){
                 $("status").innerHTML='<div class="status">⏳ Membuat file Word...</div>';
-                setTimeout(()=>{ generateOfflineWord(processedImages); },500);
+                setTimeout(()=>{ generateOfflineWord(resizedImages); },500);
             }
         }
-        
-        imagesToDownload.forEach((src,idx)=>{
+        imagesToResize.forEach((src,idx)=>{
             fetch(src)
                 .then(r=>{ if(!r.ok) throw new Error("Gagal fetch"); return r.blob(); })
                 .then(blob=>{
@@ -893,9 +872,8 @@ function word(){
                             try {
                                 let base64=reader.result;
                                 let key=imageKeys[idx];
-                                // Target tinggi 340px (setara 9cm / 255pt)
-                                compressImageByHeight(base64, 1000, 0.9, function(compressedSrc){
-                                    processedImages[key]=compressedSrc;
+                                resizeImageToHeight(base64,9.2,function(resizedSrc){
+                                    resizedImages[key]=resizedSrc;
                                     resolve();
                                 });
                             } catch(e) { reject(e); }
@@ -910,11 +888,7 @@ function word(){
                     done();
                 });
         });
-    } catch(err){ 
-        console.error(err); 
-        alert("Error saat Download Word: " + err.message);
-        $("status").innerHTML = `<div class="status err">❌ Error word: ${esc(err.message)}</div>`;
-    }
+    } catch(err){ console.error(err); alert("Error saat Download Word."); }
 }
 
 // ===== GENERATE WORD (DOWNLOAD SAJA) =====
