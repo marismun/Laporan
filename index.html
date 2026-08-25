@@ -425,26 +425,36 @@ function uploadFileToCloudinary(file, isImage, onSuccess, onError) {
 }
 
 function resizeImageToHeight(src, targetHeightCm, callback) {
-    const targetHeightPx = targetHeightCm * 37.795;
+    const scaleFactor = 2; 
+    const targetHeightPx = (targetHeightCm * 37.795) * scaleFactor;
+    
     const img = new Image();
     img.onload = function() {
         try {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const ratio = img.width / img.height;
+            const ratio = img.width / img.height; // Simpan aspek rasio
             const targetWidthPx = targetHeightPx * ratio;
+            
             canvas.width = targetWidthPx;
             canvas.height = targetHeightPx;
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(img, 0, 0, targetWidthPx, targetHeightPx);
-            callback(canvas.toDataURL('image/jpeg', 0.95));
+            
+            // Kirim balik objek berisi base64 & rasio
+            callback({
+                src: canvas.toDataURL('image/jpeg', 0.95),
+                ratio: ratio 
+            });
         } catch (e) {
             console.warn("Resize error:", e);
-            callback(src); // fallback ke gambar asli
+            callback({ src: src, ratio: 1 }); // fallback
         }
     };
     img.onerror = function() {
-        console.warn("Gagal memuat gambar untuk resize, gunakan src asli.");
-        callback(src); // fallback
+        console.warn("Gagal memuat gambar", src);
+        callback({ src: src, ratio: 1 }); // fallback
     };
     img.src = src;
 }
@@ -811,27 +821,69 @@ function generateWordHTML(resizedImages) {
     docHtml += `<tr><td colspan="2" style="border:1px solid #000;padding:8px;vertical-align:top;">${generateNarrativeTable()}</td></tr>`;
     docHtml += `<tr><td style="border:none;padding:8px;vertical-align:top;width:50%;"></td><td style="border:none;padding:8px;vertical-align:bottom;text-align:center;width:50%;"><div style="text-align:center;padding-top:60px;padding-bottom:20px;"><p style="text-align:center;margin:0;padding:0;font-weight:normal;">Mengetahui</p><p style="text-align:center;margin:0;padding:0;font-weight:normal;">Kepala BPS Kabupaten Raja Ampat</p><br><br><br><br><br><br><p style="text-align:center;margin:0;padding:0;font-weight:bold;text-decoration:underline;">Frida Irian S. Ompusunggu, SST, M.Ling.</p><p style="text-align:center;margin:0;padding:0;">NIP. 19860407 200902 2 004</p></div></td></tr>`;
     docHtml += `</table>`;
-    vs.forEach((v,index)=>{
-        let photos = S.photos[v.name] || [];
-        let hasPhoto = photos.some(p=>p.src);
-        if(hasPhoto){
-            if(index===0) docHtml += `<div style="margin-top:0;margin-bottom:0;"><!--[if gte mso 9]><br clear="all" style="mso-break-type:section-break;page-break-before:always;"><![endif]-->`; 
-            else docHtml += `<div style="margin-top:0;margin-bottom:0;"><!--[if gte mso 9]><br clear="all" style="mso-break-type:section-break;page-break-before:always;"><![endif]-->`;
-            docHtml += `<table style="width:100%;border-collapse:collapse;border:none;mso-table-lspace:0;mso-table-rspace:0;margin-top:0;margin-bottom:0;">`;
-            docHtml += `<tr><td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;"><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">DOKUMENTASI PERJALANAN DINAS PELAKSANAAN LAPANGAN</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">SENSUS EKONOMI 2026</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">KAMPUNG ${esc(v.name).toUpperCase()}</p></td></tr>`;
-            photos.forEach((p,idx)=>{ if(p.src){ let imgSrc=p.src; let key=v.name+'_'+idx; if(resizedImages&&resizedImages[key]) imgSrc=resizedImages[key]; docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" style="height:347pt;width:auto;max-width:100%;object-fit:contain;border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;mso-height-rule:exactly;">${p.caption?`<p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(p.caption)}</p>`:''}</td></tr>`; } });
-            docHtml += `</table></div>`;
-        }
-    });
-    let perahuPhotos = S.photos["Perahu"] || [];
-    let hasPerahu = perahuPhotos.some(p=>p.src);
-    if(hasPerahu){
-        docHtml += `<div style="margin-top:0;margin-bottom:0;"><!--[if gte mso 9]><br clear="all" style="mso-break-type:section-break;page-break-before:always;"><![endif]-->`;
-        docHtml += `<table style="width:100%;border-collapse:collapse;border:none;mso-table-lspace:0;mso-table-rspace:0;margin-top:0;margin-bottom:0;">`;
-        docHtml += `<tr><td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;"><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">SPJ TRANSPORTASI</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;"> </p></td></tr>`;
-        perahuPhotos.forEach((p,idx)=>{ if(p.src){ let imgSrc=p.src; let key='Perahu_'+idx; if(resizedImages&&resizedImages[key]) imgSrc=resizedImages[key]; let defaultCaption=idx===0?"Dokumentasi diatas perahu":"Foto KTP Motoris"; let caption=p.caption||defaultCaption; docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" style="height:347pt;width:auto;max-width:100%;object-fit:contain;border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;mso-height-rule:exactly;"><p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(caption)}</p></td></tr>`; } });
-        docHtml += `</table></div>`;
-    }
+	vs.forEach((v,index)=>{
+			let photos = S.photos[v.name] || [];
+			let hasPhoto = photos.some(p=>p.src);
+			if(hasPhoto){
+				if(index===0) docHtml += `<div style="margin-top:0;margin-bottom:0;"><!--[if gte mso 9]><br clear="all" style="mso-break-type:section-break;page-break-before:always;"><![endif]-->`; 
+				else docHtml += `<div style="margin-top:0;margin-bottom:0;"><!--[if gte mso 9]><br clear="all" style="mso-break-type:section-break;page-break-before:always;"><![endif]-->`;
+				docHtml += `<table style="width:100%;border-collapse:collapse;border:none;mso-table-lspace:0;mso-table-rspace:0;margin-top:0;margin-bottom:0;">`;
+				docHtml += `<tr><td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;"><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">DOKUMENTASI PERJALANAN DINAS PELAKSANAAN LAPANGAN</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">SENSUS EKONOMI 2026</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">KAMPUNG ${esc(v.name).toUpperCase()}</p></td></tr>`;
+				photos.forEach((p,idx)=>{ 
+					if(p.src){ 
+						let imgSrc=p.src; 
+						let key=v.name+'_'+idx; 
+						let wStyle = "width:auto;"; // default 
+						let htmlAttr = "";
+						
+						if(resizedImages&&resizedImages[key]){
+							if(typeof resizedImages[key] === 'object'){
+								imgSrc = resizedImages[key].src;
+								// Kunci tinggi di 347pt, hitung lebarnya secara pasti
+								let calcWidth = Math.round(347 * resizedImages[key].ratio);
+								wStyle = `width:${calcWidth}pt;`;
+								htmlAttr = `width="${calcWidth}" height="347"`;
+							} else {
+								imgSrc = resizedImages[key]; // fallback lama
+							}
+						} 
+						docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" ${htmlAttr} style="height:347pt;${wStyle}max-width:100%;object-fit:contain;border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;mso-height-rule:exactly;">${p.caption?`<p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(p.caption)}</p>`:''}</td></tr>`; 
+					} 
+				});
+				docHtml += `</table></div>`;
+			}
+		});
+
+		let perahuPhotos = S.photos["Perahu"] || [];
+		let hasPerahu = perahuPhotos.some(p=>p.src);
+		if(hasPerahu){
+			docHtml += `<div style="margin-top:0;margin-bottom:0;"><!--[if gte mso 9]><br clear="all" style="mso-break-type:section-break;page-break-before:always;"><![endif]-->`;
+			docHtml += `<table style="width:100%;border-collapse:collapse;border:none;mso-table-lspace:0;mso-table-rspace:0;margin-top:0;margin-bottom:0;">`;
+			docHtml += `<tr><td style="border:none;padding:0;text-align:center;vertical-align:top;mso-line-height-rule:exactly;"><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;">SPJ TRANSPORTASI</p><p style="text-align:center;font-weight:bold;text-transform:uppercase;font-size:12pt;margin:0;padding:0;line-height:1.2;"> </p></td></tr>`;
+			perahuPhotos.forEach((p,idx)=>{ 
+				if(p.src){ 
+					let imgSrc=p.src; 
+					let key='Perahu_'+idx; 
+					let wStyle = "width:auto;";
+					let htmlAttr = "";
+					
+					if(resizedImages&&resizedImages[key]){
+						if(typeof resizedImages[key] === 'object'){
+							imgSrc = resizedImages[key].src;
+							let calcWidth = Math.round(347 * resizedImages[key].ratio);
+							wStyle = `width:${calcWidth}pt;`;
+							htmlAttr = `width="${calcWidth}" height="347"`;
+						} else {
+							imgSrc = resizedImages[key];
+						}
+					} 
+					let defaultCaption=idx===0?"Dokumentasi diatas perahu":"Foto KTP Motoris"; 
+					let caption=p.caption||defaultCaption; 
+					docHtml+=`<tr><td style="border:none;padding:10px 0;text-align:center;vertical-align:top;"><img src="${imgSrc}" ${htmlAttr} style="height:347pt;${wStyle}max-width:100%;object-fit:contain;border:1px solid #cccccc;border-radius:4px;display:block;margin:0 auto;mso-height-rule:exactly;"><p style="text-align:center;font-size:10pt;margin-top:5px;margin-bottom:0;padding:0;font-style:italic;">${esc(caption)}</p></td></tr>`; 
+				} 
+			});
+			docHtml += `</table></div>`;
+		}
     return docHtml;
 }
 
@@ -872,8 +924,8 @@ function word(){
                             try {
                                 let base64=reader.result;
                                 let key=imageKeys[idx];
-                                resizeImageToHeight(base64,9.2,function(resizedSrc){
-                                    resizedImages[key]=resizedSrc;
+                                resizeImageToHeight(base64,9.2,function(resizedObj){
+                                    resizedImages[key]=resizedObj;
                                     resolve();
                                 });
                             } catch(e) { reject(e); }
