@@ -850,46 +850,14 @@ function preview(){
 function word(){
     try {
         if(validate()){alert(validate());return;}
-        let vs=group(), imagesToResize=[], imageKeys=[];
-        vs.forEach(v=>{ let photos=S.photos[v.name]||[]; photos.forEach((p,idx)=>{ if(p.src){ imagesToResize.push(p.src); imageKeys.push(v.name+'_'+idx); } }); });
-        let perahuPhotos=S.photos["Perahu"]||[]; perahuPhotos.forEach((p,idx)=>{ if(p.src){ imagesToResize.push(p.src); imageKeys.push('Perahu_'+idx); } });
-        if(imagesToResize.length===0){ generateOfflineWord({}); return; }
-        $("status").innerHTML='<div class="status">⏳ Mengunduh gambar dari Cloudinary...</div>';
-        let resizedImages={}, completed=0, total=imagesToResize.length;
-        function done(){
-            completed++;
-            if(completed===total){
-                $("status").innerHTML='<div class="status">⏳ Membuat file Word...</div>';
-                setTimeout(()=>{ generateOfflineWord(resizedImages); },500);
-            }
-        }
-        imagesToResize.forEach((src,idx)=>{
-            fetch(src)
-                .then(r=>{ if(!r.ok) throw new Error("Gagal fetch"); return r.blob(); })
-                .then(blob=>{
-                    return new Promise((resolve,reject)=>{
-                        let reader=new FileReader();
-                        reader.onloadend=function(){
-                            try {
-                                let base64=reader.result;
-                                let key=imageKeys[idx];
-                                resizeImageToHeight(base64,9.2,function(resizedSrc){
-                                    resizedImages[key]=resizedSrc;
-                                    resolve();
-                                });
-                            } catch(e) { reject(e); }
-                        };
-                        reader.onerror=reject;
-                        reader.readAsDataURL(blob);
-                    });
-                })
-                .then(()=>{ done(); })
-                .catch(err=>{
-                    console.warn("Gagal download/memproses gambar: ",src,err);
-                    done();
-                });
-        });
-    } catch(err){ console.error(err); alert("Error saat Download Word."); }
+        // Langsung generate Word dengan gambar asli tanpa resize
+        $("status").innerHTML='<div class="status">⏳ Membuat file Word...</div>';
+        setTimeout(()=>{ generateOfflineWord({}); },300);
+    } catch(err){ 
+        console.error(err); 
+        alert("Error saat Download Word: " + err.message);
+        $("status").innerHTML = `<div class="status err">❌ Error word: ${esc(err.message)}</div>`;
+    }
 }
 
 // ===== GENERATE WORD (DOWNLOAD SAJA) =====
